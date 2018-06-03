@@ -1,4 +1,4 @@
-import argparse
+﻿import argparse
 import json
 import logging
 import math
@@ -174,25 +174,26 @@ class QZoneExporter(object):
 
                 blog_id = blog["blogId"]
                 category = blog["cate"]
-                blog_info = BlogInfo(category, title, blog_id)
+                comment_num = blog["commentNum"]
+                blog_info = BlogInfo(category, title, blog_id, comment_num)
                 statistical_json_data = self._get_blog_comment_data(blog_info)
 
                 single_blog_payload["blogid"] = "%s" % blog_id
                 temp = self._account_info.get_url(
                     single_blog_url, params=single_blog_payload)
 
-                read, comment = 0, 0
+                read = 0
                 new_data = statistical_json_data["data"][0]["current"]["newdata"]
                 if new_data and len(new_data) > 0:
                     read = new_data["RZRD"]
-                    comment = new_data["RZC"]
+                    # comment = new_data["RZC"]
 
                 single_blog = BlogParser(
-                    self._directory, blog_info, temp.text, read, comment)
+                    self._directory, blog_info, temp.text, read)
                 single_blog.export()
 
             total_num += len(json_data["data"]["list"])
-            print("current %d blog(s)" % total_num)
+            print("current get %d blog(s)" % total_num)
 
         if total_num != self._account_info.blog_num:
             logging.warning("qq %s: not get encough blog, get: %d, should get: %d"
@@ -209,10 +210,10 @@ class QZoneExporter(object):
         unikey = "http://user.qzone.qq.com/%s/blog/%s" % (
             self._account_info.target_uin, blog_info.blog_id)
         statistical_json_data = self._get_like_data(unikey)
-        comment_num = 0
-        new_data = statistical_json_data["data"][0]["current"]["newdata"]
-        if new_data and len(new_data) > 0:
-            comment_num = new_data["RZC"]
+        comment_num = blog_info.comment_num
+        # new_data = statistical_json_data["data"][0]["current"]["newdata"]
+        # if new_data and len(new_data) > 0:
+        #     comment_num = new_data["RZC"]
 
         print("process blog comment, [%s]\tid: %s\tcomment_num: %d" %
               (blog_info.title, blog_info.blog_id, comment_num))
@@ -355,7 +356,6 @@ class QZoneExporter(object):
         '''根据文件中的说说tid删除所有说说。频繁删除会出现验证码
         '''
 
-        host_uin = self._account_info.target_uin
         if not self._account_info.is_self():
             return
 

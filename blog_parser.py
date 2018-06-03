@@ -51,10 +51,11 @@ class BlogCategoryInfo(Saver):
 
 
 class BlogInfo(object):
-    def __init__(self, category, title, blog_id):
+    def __init__(self, category, title, blog_id, comment_num):
         self._blog_id = blog_id
         self._title = title
         self._category = category
+        self._comment_num = comment_num
 
     @property
     def blog_id(self):
@@ -67,6 +68,10 @@ class BlogInfo(object):
     @property
     def category(self):
         return self._category
+
+    @property
+    def comment_num(self):
+        return self._comment_num
 
 
 class BlogComment(Saver):
@@ -82,7 +87,7 @@ class BlogComment(Saver):
 
 
 class BlogParser(object):
-    def __init__(self, dir, blog_info, html_content, read_num=0, comment_num=0):
+    def __init__(self, dir, blog_info, html_content, read_num=0):
         self._html_content = html_content
 
         directory_path = os.path.join(dir, config.BLOG_PATH)
@@ -94,7 +99,6 @@ class BlogParser(object):
 
         self._blog_info = blog_info
         self._read = read_num
-        self._comment = comment_num
 
         self._bs_obj = BeautifulSoup(self._html_content, "html.parser")
 
@@ -119,6 +123,6 @@ class BlogParser(object):
                 "%Y-%m-%d %H:%M:%S", time.localtime(self._blog_info.blog_id))
 
             readnum = self._bs_obj.find("span", {"id": "readNum"})
-            readnum.string = "阅读(%d)\t评论(%d)" % (self._read, self._comment)
+            readnum.string = "阅读(%d)\t评论(%d)" % (self._read, self._blog_info.comment_num)
 
             f.write(self._bs_obj.prettify())
