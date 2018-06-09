@@ -186,7 +186,6 @@ class QZoneExporter(object):
                 new_data = statistical_json_data["data"][0]["current"]["newdata"]
                 if new_data and len(new_data) > 0:
                     read = new_data["RZRD"]
-                    # comment = new_data["RZC"]
 
                 single_blog = BlogParser(
                     self._directory, blog_info, temp.text, read)
@@ -197,7 +196,8 @@ class QZoneExporter(object):
 
         if total_num != self._account_info.blog_num:
             logging.warning("qq %s: not get encough blog, get: %d, should get: %d"
-                            % (self._account_info.target_uin, total_num, self._account_info.blog_num))
+                            % (self._account_info.target_uin, total_num,
+                               self._account_info.blog_num))
 
     @logging_wrap
     def _get_blog_comment_data(self, blog_info):
@@ -211,9 +211,6 @@ class QZoneExporter(object):
             self._account_info.target_uin, blog_info.blog_id)
         statistical_json_data = self._get_like_data(unikey)
         comment_num = blog_info.comment_num
-        # new_data = statistical_json_data["data"][0]["current"]["newdata"]
-        # if new_data and len(new_data) > 0:
-        #     comment_num = new_data["RZC"]
 
         print("process blog comment, [%s]\tid: %s\tcomment_num: %d" %
               (blog_info.title, blog_info.blog_id, comment_num))
@@ -257,7 +254,8 @@ class QZoneExporter(object):
         if total_num != comment_num:
             logging.warning("qq %s: not get correct blog comment, "
                             "blog: %s, comment get: %d, comment should get: %d"
-                            % (self._account_info.target_uin, blog_info.title, total_num, comment_num))
+                            % (self._account_info.target_uin, blog_info.title,
+                               total_num, comment_num))
 
         return statistical_json_data
 
@@ -306,8 +304,9 @@ class QZoneExporter(object):
             ss_parser.export()
 
         if total_num != self._account_info.shuoshuo_num:
-            logging.warning("qq %s: not get correct shuoshuo, get: %d, should get: %d" %
-                            (self._account_info.target_uin, total_num, self._account_info.shuoshuo_num))
+            logging.warning("qq %s: not get correct shuoshuo, get: %d, should get: %d"
+                            % (self._account_info.target_uin, total_num,
+                               self._account_info.shuoshuo_num))
 
         if not get_like_data:
             return
@@ -410,6 +409,8 @@ class QZoneExporter(object):
         if "albumListModeSort" not in json_data["data"]:
             logging.warning("albumListModeSort not found in %s" %
                             json_data["data"])
+            return
+            
         if not json_data["data"]["albumListModeSort"]:
             logging.warning("%s\nalbumListModeSort is null" %
                             json_data["data"])
@@ -457,8 +458,8 @@ class QZoneExporter(object):
             album_info = AlbumInfo(album_data)
             print(str(album_info))
 
-            self._get_album_photo_data(album_info)
-            self._get_album_comment_data(album_info)
+            album_comment_num = self._get_album_comment_data(album_info)
+            self._get_album_photo_data(album_info, album_comment_num == 0)
 
             if get_like_data:
                 unikey = "http://user.qzone.qq.com/%s/photo/%s" % (
@@ -468,7 +469,7 @@ class QZoneExporter(object):
             random_sleep(1, 2)
 
     @logging_wrap
-    def _get_album_photo_data(self, album_info):
+    def _get_album_photo_data(self, album_info, need_get_comment=False):
         '''获取相册中照片数据
         '''
 
@@ -502,7 +503,7 @@ class QZoneExporter(object):
             "fupdate": "1",
             "plat": "qzone",
             "source": "qzone",
-            "cmtNum": "1",                  # 必选
+            "cmtNum": "99",                 # 必选
             "sortOrder": "1",
             "need_private_comment": "1",
             "inCharset": "utf-8",
@@ -512,6 +513,11 @@ class QZoneExporter(object):
             "picKey": "unknow",
             "postNum": "0"                  # 获取后续照片数量
         }
+
+        ttt = '''{"data": {"comments":[]}}'''
+        single_comment_data = json.loads(ttt)
+        comment_exported_num = 0
+        total_comment_num = 0
 
         loop_num = math.ceil(album_info.photo_num / num)
         for i in range(loop_num):
@@ -533,12 +539,59 @@ class QZoneExporter(object):
                 floatview_photo_payload["postNum"] = "%d" % (current_num - 1)
                 r = self._account_info.get_url(
                     floatview_photo_list, params=floatview_photo_payload)
-                json_data = get_json_data_from_response(r.text)
-                photo_parser = PhotoParser(
-                    json_data, start, current_num, self._directory, album_info.directory, True)
+                floatview_json_data = get_json_data_from_response(r.text)
+                photo_parser = PhotoParser(floatview_json_data, start, current_num,
+                                           self._directory, album_info.directory, True)
                 photo_parser.export()
 
+                # 获取评论数据
+                if need_get_comment:
+                    for photo in json_data["data"]["photoList"]:
+                        pic_comment_num = photo["forum"] or 0
+                        if pic_comment_num == 0:
+                            continue
+                        print("find %d comment(s) in %s" %
+                              (pic_comment_num, photo["lloc"]))
+                        # 评论数可能显示错误
+                        floatview_photo_payload["cmtNum"] = "%d" % (
+                            pic_comment_num if pic_comment_num > 99 else 99)
+                        floatview_photo_payload["picKey"] = photo["lloc"]
+                        floatview_photo_payload["postNum"] = "0"
+
+                        r = self._account_info.get_url(floatview_photo_list,
+                                                       params=floatview_photo_payload)
+                        floatview_json_data = get_json_data_from_response(
+                            r.text)
+                        if not ("single" in floatview_json_data["data"]
+                                and floatview_json_data["data"]["single"]):
+                            continue
+                        comment_data = floatview_json_data["data"]["single"]["comments"]
+                        single_comment_data["data"]["comments"] += comment_data
+                        pic_comment_num = len(comment_data)
+                        total_comment_num += pic_comment_num
+                        if total_comment_num > 100 + comment_exported_num:
+                            photo_comment = PhotoComment(single_comment_data,
+                                                         comment_exported_num,
+                                                         total_comment_num,
+                                                         self._directory,
+                                                         album_info.directory,
+                                                         self._account_info)
+                            photo_comment.export()
+                            single_comment_data["data"]["comments"] = []
+                            comment_exported_num = total_comment_num
+                        random_sleep(0, 1)
+
             random_sleep(1, 2)
+
+        # 导出剩余评论数据
+        if need_get_comment:
+            if comment_exported_num < total_comment_num:
+                photo_comment = PhotoComment(single_comment_data, comment_exported_num,
+                                             total_comment_num, self._directory,
+                                             album_info.directory, self._account_info)
+                photo_comment.export()
+            print("get %d comment(s) in %s" %
+                  (total_comment_num, album_info.name))
 
         print(str(album_info), "photo data done")
 
@@ -576,19 +629,19 @@ class QZoneExporter(object):
 
             current_num = len(json_data["data"]["comments"])
 
-            photo_comment = PhotoComment(
-                json_data, start, start + current_num, self._directory, album_info.directory, self._account_info)
+            photo_comment = PhotoComment(json_data, start, start + current_num,
+                                         self._directory, album_info.directory,
+                                         self._account_info)
 
             photo_comment.export()
 
             start += current_num
         if start == 0:
-            s = '''{"data": {"comments":[]}}'''
-            json_data = json.loads(s)
-            photo_comment = PhotoComment(
-                json_data, 0, 1, self._directory, album_info.directory, self._account_info)
-            photo_comment.export()
+            print("get 0 comment, try to find comments by traversing album")
+
         print(str(album_info), "comment[%d] done" % start)
+
+        return start
 
     @logging_wrap
     def _get_like_data(self, unikey):
@@ -795,11 +848,11 @@ def main():
         return
 
     target_uin = ""
-    uin = ""
+    self_uin = ""
     g_tk = ""
     cookies_value = ""
 
-    q = QZoneExporter(uin, g_tk, cookies_value, args, target_uin)
+    q = QZoneExporter(self_uin, g_tk, cookies_value, args, target_uin)
     q.export()
 
     print("done")
