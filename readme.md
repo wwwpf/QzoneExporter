@@ -110,13 +110,26 @@ print("done")
 
 ### 示例
 
+#### 导出日志数据
+
 命令行中运行
 
 ```shell
 python exporter.py --blog
 ```
 
-开始导出日志数据。
+#### 下载相册照片
+
+```shell
+python exporter.py --photo
+python exporter.py --download
+```
+
+或
+
+```shell
+python exporter.py --photo --download
+```
 
 ## 存在的问题
 

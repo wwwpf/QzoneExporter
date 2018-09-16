@@ -867,7 +867,7 @@ def main():
     parser.add_argument("--shuoshuo", help="导出说说数据", action="store_true")
     parser.add_argument(
         "--like", help="导出点赞数据，需要设置--photo或--shuoshuo", action="store_true")
-    parser.add_argument("--download", help="下载图片或视频至本地", action="store_true")
+    parser.add_argument("--download", help="下载图片或视频至本地，需要先导出说说或相册的json数据", action="store_true")
 
     parser.add_argument("--all", help="导出所有数据", action="store_true")
 
