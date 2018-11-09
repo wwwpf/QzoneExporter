@@ -558,6 +558,7 @@ class QZoneExporter(object):
             r = self._account_info.get_url(
                 list_photo_url, params=list_photo_payload)
             json_data = get_json_data_from_response(r.text)
+            #import pdb;pdb.set_trace()
             photo_parser = PhotoParser(
                 json_data, start, start + current_num, self._directory, album_info.directory)
             photo_parser.export()
@@ -571,7 +572,7 @@ class QZoneExporter(object):
                     floatview_photo_list, params=floatview_photo_payload)
                 floatview_json_data = get_json_data_from_response(r.text)
                 photo_parser = PhotoParser(floatview_json_data, start, start + current_num,
-                                           self._directory, album_info.directory, True)
+                                           self._directory, album_info.directory, True, raw_json_data=json_data)
                 photo_parser.export()
 
                 # 获取评论数据

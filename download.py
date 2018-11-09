@@ -6,6 +6,9 @@ from threading import Lock
 
 import requests
 
+from PIL import Image
+import piexif
+
 import config
 from tools import logging_wrap, purge_file_name
 
@@ -13,9 +16,15 @@ _lock = Lock()
 
 
 @logging_wrap
-def download_media(url, dir, file_name):
+def download_media(url, dir, file_name, otime):
     s = "\rdownloading %s -> %05.2f%% "
     chunk_size = 1024
+
+    if otime:
+        exif_ifd = {piexif.ExifIFD.DateTimeOriginal: otime}
+        exif_dict = {"Exif":exif_ifd}
+        exif_bytes = piexif.dump(exif_dict)
+        
     with closing(requests.get(url, stream=True)) as r:
         extension = "jpg"
         if "content-type" in r.headers:
@@ -36,6 +45,8 @@ def download_media(url, dir, file_name):
                 current_len += len(data)
                 percent = 100 * current_len / total_len
                 print(s % (url, percent), end="")
+    if otime:
+        piexif.insert(exif_bytes, file_name)
     print("\n%s is downloaded" % url)
 
 
@@ -102,20 +113,22 @@ class Downloader(object):
             return
 
         print("start downloading")
+        #import pdb;pdb.set_trace()
         with open(self._output_file, "a+", encoding="utf-8") as fupdate:
             with open(self._input_file, "r", encoding="utf-8") as fin:
                 fupdate.seek(0)
                 done_urls = fupdate.read()
 
                 for line in fin:
-                    temp = line.split()
+                    temp = line.split('\t')
                     url = temp[0]
                     if done_urls.find(url) >= 0:
                         continue
 
                     download_dir = temp[1]
                     id = temp[2]
-                    download_media(url, download_dir, id)
+                    otime = temp[3].strip()
+                    download_media(url, download_dir, id, otime)
                     fupdate.write("%s\n" % url)
                     fupdate.flush()
         print("downloading done")

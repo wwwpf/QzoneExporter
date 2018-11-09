@@ -1,3 +1,4 @@
+#encoding=utf8
 import os
 
 import config
@@ -61,7 +62,7 @@ class PhotoComment(Saver):
 
 
 class PhotoParser(Saver):
-    def __init__(self, json_data, begin, end, dir, album_dir, float_view=False):
+    def __init__(self, json_data, begin, end, dir, album_dir, float_view=False, raw_json_data={}):
         Saver.__init__(self, json_data, os.path.join(
             dir, config.PHOTO_PATH), album_dir)
 
@@ -72,6 +73,14 @@ class PhotoParser(Saver):
         self._file_name = file_name % (begin, end - 1)
         self._photo_key = "photoList" if not float_view else "photos"
         self._id_key = "lloc" if not float_view else "picKey"
+        self.raw_json_data = raw_json_data
+
+
+    def get_exif(self, lloc):
+        for i in self.raw_json_data['data']['photoList']:
+            if i['lloc'] == lloc:
+                return i
+        return {}
 
     @logging_wrap
     def export(self):
@@ -84,8 +93,8 @@ class PhotoParser(Saver):
             self.directory_path, ".."), config.TO_DOWNLOAD_FILE)
         with open(url_file, "a", encoding="utf-8") as f:
             if self._photo_key in self.json_data["data"]:
+                #import pdb;pdb.set_trace()
                 for photo in self.json_data["data"][self._photo_key]:
-
                     url = ""
                     if photo["is_video"]:
                         url = photo["video_info"]["video_url"]
@@ -96,8 +105,17 @@ class PhotoParser(Saver):
                             url = photo["origin"]
                     if len(url) == 0:
                         url = photo["url"]
-                    f.write("%s\t%s\t%s\n" %
-                            (url, self._download_dir, photo[self._id_key]))
+                    raw_info = self.get_exif(photo["lloc"])
+                    if "exif" not in raw_info:
+                        originalTime = ""
+                    else:
+                        if raw_info["exif"]["originalTime"]:
+                            originalTime = raw_info["exif"]["originalTime"]
+                        else:
+                            originalTime = raw_info["uploadtime"].replace("-", ":")
+
+                    f.write("%s\t%s\t%s\t%s\n" %
+                            (url, self._download_dir, photo[self._id_key], originalTime))
 
 
 class PhotoDownloader(Downloader):
