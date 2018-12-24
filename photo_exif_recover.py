@@ -101,7 +101,10 @@ class PhotoExifRecoverBatch(object):
         self.target_uin = target_uin
 
     def batch(self, should_rename=True, should_add_exif=True):
+        # re constants
         p_date = re.compile(r"(\d{4})(0[1-9]|1[0-2])(0[1-9]|[1-2]\d|3[0-1])[ _]([0-1]\d|2[0-3])([0-5]\d)([0-5]\d)")
+        p_floatview_json = re.compile(r"^floatview_photo_\d{5}-\d{5}.json$")
+        p_raw_json = re.compile(r"^photo_\d{5}-\d{5}.json$")
 
         target_dir = os.path.join(os.getcwd(), self.target_uin, "photo")
         if not os.path.exists(target_dir):
@@ -110,9 +113,6 @@ class PhotoExifRecoverBatch(object):
         album_info_dir = os.path.join(target_dir, "album_info.json")
         with open(album_info_dir, "r", encoding="utf-8") as album_info_f:
             album_info = json.load(album_info_f)
-
-        p_floatview_json = re.compile(r"^floatview_photo_00000-\d{5}.json$")
-        p_raw_json = re.compile(r"^photo_00000-\d{5}.json$")
 
         for album in album_info["data"]["albumListModeSort"]:
             album_dir = ""
@@ -137,31 +137,38 @@ class PhotoExifRecoverBatch(object):
                 print("相册文件夹缺失:", os.path.join(target_dir, album["name"]))
                 continue
 
-            # find floatview and raw json
+            # find floatview and raw json (500+ json文件会分裂。。)
             files_in_album_dir = os.listdir(album_dir)
-            floatview_json_dir = ""
-            raw_json_dir = ""
+            floatview_json_dir_list = []
+            raw_json_dir_list = []
             for file_name_in_album_dir in files_in_album_dir:
                 if re.search(p_floatview_json, file_name_in_album_dir):
-                    floatview_json_dir = os.path.join(album_dir, file_name_in_album_dir)
+                    floatview_json_dir_list.append(os.path.join(album_dir, file_name_in_album_dir))
                 elif re.search(p_raw_json, file_name_in_album_dir):
-                    raw_json_dir = os.path.join(album_dir, file_name_in_album_dir)
-                if floatview_json_dir != "" and raw_json_dir != "":
-                    break
-            with open(floatview_json_dir, "r", encoding="utf-8") as floatview_json_f:
-                floatview_json = json.load(floatview_json_f)
-            with open(raw_json_dir, "r", encoding="utf-8") as raw_json_f:
-                raw_json = json.load(raw_json_f)
+                    raw_json_dir_list.append(os.path.join(album_dir, file_name_in_album_dir))
+
+            floatview_list = []
+            raw_list = []
+            for floatview_json_dir in floatview_json_dir_list:
+                with open(floatview_json_dir, "r", encoding="utf-8") as floatview_json_f:
+                    floatview_json = json.load(floatview_json_f)
+                    for _floatview_info in floatview_json["data"]["photos"]:
+                        floatview_list.append(_floatview_info)
+            for raw_json_dir in raw_json_dir_list:
+                with open(raw_json_dir, "r", encoding="utf-8") as raw_json_f:
+                    raw_json = json.load(raw_json_f)
+                    for _raw_info in raw_json["data"]["photoList"]:
+                        raw_list.append(_raw_info)
 
             # floatview_info
             downloaded_dir = os.path.join(album_dir, "downloaded")
             photos_in_album_downloaded_dir = os.listdir(downloaded_dir)
-            for floatview_info in floatview_json["data"]["photos"]:
+            for floatview_info in floatview_list:
                 lloc = floatview_info["lloc"]
 
                 # find raw_info
                 raw_info = None
-                for _raw_info in raw_json["data"]["photoList"]:
+                for _raw_info in raw_list:
                     if _raw_info["lloc"] == lloc:
                         raw_info = _raw_info
                         break
@@ -179,6 +186,7 @@ class PhotoExifRecoverBatch(object):
                         photoExifRecover.recover()
                     # rename photo
                     if should_rename:
+
                         [dir_name, photo_name] = os.path.split(photo_dir)
                         if not re.search(p_date, photo_name):
                             exif_in_file = piexif.load(photo_dir)
