@@ -31,6 +31,10 @@ def get_json_data_from_response(resp_text):
 
 
 def purge_file_name(file_name):
+    temp = file_name
+    file_name = ""
+    for c in temp:
+        file_name += "_" if c.isspace() else c
     escape_chars = "/\\:*?\"<>|"
     for c in escape_chars:
         file_name = file_name.replace(c, "%%%X" % ord(c))
