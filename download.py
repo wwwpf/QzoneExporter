@@ -14,9 +14,10 @@ _lock = Lock()
 
 @logging_wrap
 def download_media(url, dir, file_name):
+    result = False
     s = "\rdownloading %s -> %05.2f%% "
     chunk_size = 1024
-    with closing(requests.get(url, stream=True)) as r:
+    with requests.get(url, stream=True, timeout=30) as r:
         extension = "jpg"
         if "content-type" in r.headers:
             content_type = r.headers["content-type"]
@@ -36,7 +37,9 @@ def download_media(url, dir, file_name):
                 current_len += len(data)
                 percent = 100 * current_len / total_len
                 print(s % (url, percent), end="")
-    print("\n%s is downloaded" % url)
+        result = True
+        print("\n%s is downloaded" % url)
+    return result
 
 
 @logging_wrap
@@ -115,7 +118,7 @@ class Downloader(object):
 
                     download_dir = temp[1]
                     id = temp[2]
-                    download_media(url, download_dir, id)
-                    fupdate.write("%s\n" % url)
-                    fupdate.flush()
+                    if download_media(url, download_dir, id):
+                        fupdate.write("%s\n" % url)
+                        fupdate.flush()
         print("downloading done")
