@@ -96,11 +96,11 @@ class PhotoExifRecover(object):
             piexif.insert(exif_bytes, self.file_dir)
 
 
-class PhotoExifRecoverBath(object):
+class PhotoExifRecoverBatch(object):
     def __init__(self, target_uin):
         self.target_uin = target_uin
 
-    def bath(self, should_rename=True, should_add_exif=True):
+    def batch(self, should_rename=True, should_add_exif=True):
         p_date = re.compile(r"(\d{4})(0[1-9]|1[0-2])(0[1-9]|[1-2]\d|3[0-1])[ _]([0-1]\d|2[0-3])([0-5]\d)([0-5]\d)")
 
         target_dir = os.path.join(os.getcwd(), self.target_uin, "photo")
@@ -199,15 +199,22 @@ if target_uin == "":
     target_uin = input("请输入要批处理的QQ号:")
 should_rename = True    #是否需要将相册和照片文件名前加入时间标识，格式为 "YYYYMMDD HHMMSS 原文件名"，便于排序整理
 
-photoExifRecoverBath = PhotoExifRecoverBath(target_uin)
+photoExifRecoverBatch = PhotoExifRecoverBatch(target_uin)
 
 #文件完整性检查
 print("开始文件完整性检查")
-photoExifRecoverBath.bath(False, False)
+photoExifRecoverBatch.batch(False, False)
 print("***如果照片文件缺失，可单独手工下载，或调高timeout，重新运行exporter.py下载；\n***如果相册文件夹缺失，请确认是否有空相册。")
 input("按回车开始批处理...")
 
 #正式批处理
 print("开始批处理")
-photoExifRecoverBath.bath(should_rename)
+photoExifRecoverBatch.batch(should_rename)
 print("批处理完成")
+
+# Ref
+# piexif Documen (piexif库官方文档): https://piexif.readthedocs.io/en/latest/
+# official Exif standards(官方Exif标准): http://www.cipa.jp/std/documents/e/DC-008-2012_E.pdf
+# 感谢greysign将时间写回照片文件的启发: https://github.com/greysign/QzoneExporter.git
+
+# 讲个笑话，我老婆用QQ空间备份照片:(
