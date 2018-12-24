@@ -220,6 +220,8 @@ print("开始批处理")
 photoExifRecoverBatch.batch(should_rename)
 print("批处理完成")
 
+# by Yang-z
+
 # Ref
 # piexif Documen (piexif库官方文档): https://piexif.readthedocs.io/en/latest/
 # official Exif standards(官方Exif标准): http://www.cipa.jp/std/documents/e/DC-008-2012_E.pdf
