@@ -4,7 +4,7 @@ QQ空间数据导出。
 
 - 导出日志、留言板、相册、说说、点赞数据。
 - 将说说、相册中的图片及视频下载至本地。
-- 支持 Exif 信息写回照片，时间写入文件名。（由[Yang-zzz](https://github.com/wwwpf/QzoneExporter/pull/8)及[greysign](https://github.com/wwwpf/QzoneExporter/pull/5)提供）
+- 支持 Exif 信息写回照片，时间写入文件名。（由[Yang-z](https://github.com/wwwpf/QzoneExporter/pull/8)及[greysign](https://github.com/wwwpf/QzoneExporter/pull/5)提供）
 
 ```shell
 usage: exporter.py [-h] [--blog] [--msgboard] [--photo] [--shuoshuo] [--like]
