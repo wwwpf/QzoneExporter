@@ -42,14 +42,18 @@ class PhotoExifRecover(object):
                 print(exif_value_key, " is added as ", value)
                 return True
 
-    def covert(self, str, tag):
+    def covert(self, str: str, tag):
         if str == "":
             return str
 
         elif tag == piexif.TYPES.Ascii:
             return str
         elif tag == piexif.TYPES.Rational or tag == piexif.TYPES.SRational:
-            return int(float(str) * 10000), 10000
+            if '/' in str:
+                (numerator, denominator) = str.split('/')
+                return int(numerator), int(denominator)
+            else:
+                return int(float(str) * 10000), 10000
         elif tag == piexif.TYPES.Short or tag == piexif.TYPES.Long:
             return int(str)
 
@@ -87,9 +91,9 @@ class PhotoExifRecover(object):
 
         #GPS#
         if self.copy_exif("GPS", piexif.GPSIFD.GPSLongitude, self.floatview_info, "shootGeo", "pos_x", "GPSPos"):
-            self.add_exif("GPS", piexif.GPSIFD.GPSLongitudeRef, "E")#拍摄地点在东方国家是参考东经的；在西方国家不确定，如参考东经则经度是负数
+            self.add_exif("GPS", piexif.GPSIFD.GPSLongitudeRef, "E") # 拍摄地点在东半球是参考东经的；在西半球如参考东经则经度是负数
         if self.copy_exif("GPS", piexif.GPSIFD.GPSLatitude, self.floatview_info, "shootGeo", "pos_y", "GPSPos"):
-            self.add_exif("GPS", piexif.GPSIFD.GPSLatitudeRef, "N")#拍摄地点在北半球是参考北纬的；在南半球不确定，如参考南纬则维度是负数
+            self.add_exif("GPS", piexif.GPSIFD.GPSLatitudeRef, "N") # 拍摄地点在北半球是参考北纬的；在南半球如参考北纬则维度是负数
 
         if self.is_dirty:
             exif_bytes = piexif.dump(self.exif_dict)
