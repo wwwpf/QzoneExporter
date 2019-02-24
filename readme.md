@@ -25,7 +25,7 @@ optional arguments:
 
 - target_uin
   需要导出数据的QQ号
-- uin
+- self_uin
   用于登录空间的QQ号
 - g_tk, cookies_value
   从浏览器登录QQ空间，按 `F12`，点击 `Network` 选项卡，点击QQ空间“我的主页“，点击 `XHR`，点击 `main_page_cgi` 请求，从 `Header` 中找出 `g_tk` 及 `cookie`。如图所示：
@@ -101,10 +101,10 @@ target_uin/
 # exporter.py
 # 根据需要设定以下变量
 target_uin = "需要导出数据的QQ号"
-uin = "登录空间的QQ号"
+self_uin = "登录空间的QQ号"
 g_tk = "从浏览器获取"
 cookies_value = "从浏览器获取"
-q = QZoneExporter(uin, g_tk, cookies_value, args, target_uin)
+q = QZoneExporter(self_uin, g_tk, cookies_value, args, target_uin)
 q.export()
 
 print("done")
@@ -146,3 +146,9 @@ python exporter.py --photo --download
 
 - [QQ 空间爬虫之爬取说说](https://kylingit.com/blog/qq-空间爬虫之爬取说说/)
   感谢这篇博客提供的思路。
+
+## 捐赠
+
+如果您认为该项目在一定程度上帮助了您，可以赞赏我:D
+
+![赞赏码](https://raw.githubusercontent.com/wwwpf/ttt/master/qr.png)
