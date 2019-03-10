@@ -1,0 +1,24 @@
+﻿
+
+
+.main
+{
+    width:1000px;
+    height:auto;
+    border:0px solid #ccc;
+}
+.center
+{
+    text-align:center;
+    width:600px;
+    height:400px;
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+}
+
+a:link {color: #000000;}		/* 未被访问的链接 */
+a:visited {color:#00FF00;}	/* 已被访问的链接 */
+a:hover {color:#FF00FF;}	/* 鼠标指针移动到链接上 */
+a:active {color:#0000FF;}	/* 正在被点击的链接 */
