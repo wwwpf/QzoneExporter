@@ -1,5 +1,6 @@
 
-document.getElementById('#msg_board_00000-00019').addEventListener('click', function() {
+document.getElementById('00019').addEventListener('click', function() {
+    alert(document.getElementById('00019').value);
 /* Act on the event */}, false);
 
 //获取<header>和</section>的引用
@@ -7,7 +8,7 @@ let header = document.querySelector('header');
 let section = document.querySelector('content');
 
 //保存一个json文件访问的URL作为一个变量
-let requestURL = './photo_00000-00056.json';
+let requestURL = './msg_board_00000-00019.json';
 //创建一个HTTP请求对象
 let request = new XMLHttpRequest();
 //使用open（）打开一个新请求

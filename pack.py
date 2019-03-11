@@ -6,6 +6,8 @@ __author__ = 'rublog'
 import os
 import time
 import shutil
+import re
+import zipfile
 
 
 def clear():
@@ -13,7 +15,7 @@ def clear():
     
 
 def make_html():
-    all_folders = os.listdir()
+    all_folders = os.listdir('./')
     find_bak_folder = 0
     for folders in all_folders:
         if folders.startswith(('1', '2', '3', '4', '5', '6', '7', '8', '9')) and folders.endswith(('1', '2', '3', '4', '5', '6', '7', '8', '9', '0')):
@@ -21,8 +23,11 @@ def make_html():
             html_folder_name = folders + '_html'
             folders = os.path.join(os.path.abspath('./'), folders)
             html_folder_name = os.path.join(os.path.abspath('./'), html_folder_name)
-            merge(folders, html_folder_name)
-
+            merge('/html', html_folder_name)
+            make_blog_html(folders, html_folder_name)
+            make_photo_html(folders, html_folder_name)
+            make_shuoshuo_html(folders, html_folder_name)
+            make_msg_board_html(folders, html_folder_name)
         else:
             continue
     if find_bak_folder == 1:
@@ -34,6 +39,65 @@ def make_html():
 
 
 def zip_all_files():
+    all_folders = os.listdir('./')
+    for folders in all_folders:
+        if folders.startswith(('1', '2', '3', '4', '5', '6', '7', '8', '9')):
+            source_dir = os.path.join(os.path.abspath('./'), folders)
+            output_filename = source_dir + '.zip'
+            zip_f = zipfile.ZipFile(output_filename, 'w')
+            pre_len = len(os.path.dirname(source_dir))
+            for root, dir_names, file_names in os.walk(source_dir):
+                for file_name in file_names:
+                    path_file = os.path.join(root, file_name)
+                    arc_name = path_file[pre_len:].strip(os.path.sep)   #相对路径
+                    zip_f.write(path_file, arc_name)
+            zip_f.close()
+
+
+# 生成blog的html索引页面和优化博客文章页面
+# To-do 替换博客文字页面的图片引用链接，图片保存为本地文件
+def make_blog_html(folders, html_folder_name):
+    blog_folder = os.path.join(folders, 'blog')
+    with open(os.path.join(blog_folder, 'header.html'), 'r') as f:
+        header = f.read()
+    with open(os.path.join(blog_folder, 'footer.html'), 'r') as f:
+        footer = f.read()
+    if os.path.isdir(blog_folder):
+        for root, dir, files in os.walk(blog_folder):
+            for name in files:
+                if not name.endswith('.html'):
+                    continue
+                full_path = os.path.join(root, name)
+                split_full_path = full_path.split('\\')
+                end_path = '\\'.join(split_full_path[1:])
+                with open(full_path, 'r') as f, open((html_folder_name + '\\' + end_path), 'wb+') as html_file, \
+                        open((html_folder_name + '\\' + 'index.html')) as index_html:
+                    html_file.write(header.encode())
+                    content = f.read()
+                    content_group = re.search('class="blog_title">([\S\s]*)<div\sclass="blog_footer', content)
+                    if content_group:
+                        content = content_group.group()
+                    html_file.write(content.encode())
+                    html_file.write(footer.encode())
+                    blog_link_templete = """
+                            \n<br>
+        <a href="./{0}/{1}">{2}</a>\n
+                    """
+                    index_html.write(blog_link_templete.format(split_full_path[1], split_full_path[-1],
+                                                               split_full_path[-1].rstrip('.html')))
+
+
+
+
+def make_photo_html(folders, html_folder_name):
+    pass
+
+
+def make_shuoshuo_html(folders, html_folder_name):
+    pass
+
+
+def make_msg_board_html(folders, html_folder_name):
     pass
 
 
@@ -109,7 +173,7 @@ def pack_up():
             zip_all_files()
             clear()
             print('*************************************************************')
-            print('   ***********已生成tml文件并压缩，请输入3退出***********   ')
+            print('   ***********已生成html文件并压缩，请输入3退出***********   ')
             print('*************************************************************\n\n')
         elif kk == 3:
             clear()
