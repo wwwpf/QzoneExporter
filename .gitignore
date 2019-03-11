@@ -103,12 +103,4 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-344521168
-344521168/*
-344521168*/*
-log.txt
-*.xml
-.idea/*
-.idea
-
 .vscode/
