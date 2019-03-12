@@ -8,6 +8,7 @@ import time
 import shutil
 import re
 import zipfile
+import json
 
 
 def clear():
@@ -18,13 +19,17 @@ def make_html():
     all_folders = os.listdir('./')
     find_bak_folder = 0
     for folders in all_folders:
-        if folders.startswith(('1', '2', '3', '4', '5', '6', '7', '8', '9')) and folders.endswith(('1', '2', '3', '4', '5', '6', '7', '8', '9', '0')):
+        if folders.startswith(('1', '2', '3', '4', '5', '6', '7', '8', '9')) and\
+                folders.endswith(('1', '2', '3', '4', '5', '6', '7', '8', '9', '0')):
             find_bak_folder = 1
             html_folder_name = folders + '_html'
             folders = os.path.join(os.path.abspath('./'), folders)
             html_folder_name = os.path.join(os.path.abspath('./'), html_folder_name)
+            if not os.path.isdir(html_folder_name):
+                os.makedirs(html_folder_name)
             merge('./html', html_folder_name)
-            make_blog_html(folders, html_folder_name)
+            # 记得取消下面4行的注释  folders 是qq备份的文件夹，html_folder_name 是目标文件夹
+            # make_blog_html(folders, html_folder_name)
             make_photo_html(folders, html_folder_name)
             make_shuoshuo_html(folders, html_folder_name)
             make_msg_board_html(folders, html_folder_name)
@@ -34,8 +39,6 @@ def make_html():
         print('已生成html文件')
     else:
         print("Warning: 好像没有找到备份的文件夹！请先进行备份！")
-
-    pass
 
 
 def zip_all_files():
@@ -58,6 +61,8 @@ def zip_all_files():
 # To-do 替换博客文字页面的图片引用链接，图片保存为本地文件
 def make_blog_html(folders, html_folder_name):
     blog_folder = os.path.join(folders, 'blog')
+    if not os.path.isdir(blog_folder):
+        return
     with open((html_folder_name + '/blog/' + 'header.html'), 'r', encoding='utf-8') as f:
         header = f.read()
     with open((html_folder_name + '/blog/' + 'footer.html'), 'r', encoding='utf-8') as f:
@@ -66,50 +71,69 @@ def make_blog_html(folders, html_folder_name):
     # print(html_folder_name)
     # print(header)
     # print(footer)
-    if os.path.isdir(blog_folder):
-        with open((html_folder_name + '\\blog\\' + 'index.html'), 'w+', encoding='utf-8') as index_html:
-            header1 = header.replace('../index.html">博客', '../blog/index.html">博客')
-            index_html.write(header1)
-            for root, dir, files in os.walk(blog_folder):
-                for name in files:
-                    if not name.endswith('.html'):
-                        continue
-                    full_path = os.path.join(root, name)
+    with open((html_folder_name + '\\blog\\' + 'index.html'), 'w+', encoding='utf-8') as index_html:
+        header1 = header.replace('../index.html">博客', '../blog/index.html">博客')
+        index_html.write(header1)
+        for root, dir, files in os.walk(blog_folder):
+            for name in files:
+                if not name.endswith('.html'):
+                    continue
+                full_path = os.path.join(root, name)
+                # print(full_path)
+                split_full_path = full_path.split('\\')
+                blog_folder_len = len(blog_folder.split('\\'))
+                end_path = '\\'.join(split_full_path[(blog_folder_len-1):])
+                html_file_name = html_folder_name + '\\' + end_path
+                html_file_folder = os.path.split(html_file_name)[0]
+                if not os.path.isdir(html_file_folder):
+                    os.makedirs(html_file_folder)
+                with open(full_path, encoding='utf-8') as f, open(html_file_name, 'w+', encoding='utf-8') as\
+                        html_file:
+                    html_file.write(header)
+                    content = f.read()
                     # print(full_path)
-                    split_full_path = full_path.split('\\')
-                    blog_folder_len = len(blog_folder.split('\\'))
-                    end_path = '\\'.join(split_full_path[(blog_folder_len-1):])
-                    html_file_name = html_folder_name + '\\' + end_path
-                    html_file_folder = os.path.split(html_file_name)[0]
-                    if not os.path.isdir(html_file_folder):
-                        os.makedirs(html_file_folder)
-                    with open(full_path, encoding='utf-8') as f, open(html_file_name, 'w+', encoding='utf-8') as\
-                            html_file:
-                        html_file.write(header)
-                        content = f.read()
-                        # print(full_path)
+                    # print(content)
+                    content_group = re.findall('class="blog_title">([\S\s]*)<div\sclass="blog_footer', content)
+                    if content_group:
+                        content = content_group[0]
                         # print(content)
-                        content_group = re.findall('class="blog_title">([\S\s]*)<div\sclass="blog_footer', content)
-                        if content_group:
-                            content = content_group[0]
-                            # print(content)
-                        html_file.write(content)
-                        html_file.write(footer)
-                        blog_title = split_full_path[-1].rstrip('.html')
-                        # print(blog_title)
-                        # print(end_path)
-                        end_path1 = '\\'.join(split_full_path[blog_folder_len:])
-                        blog_link_template = """           \n<br>            \n<a href="./{0}">{1}</a>\n"""
-                        blog_para = blog_link_template.format(end_path1, blog_title)
-                        # print(blog_para)
-                        index_html.write(blog_para)
-            footer1 = footer.replace('../index.html">博客', '../blog/index.html">博客')
-            index_html.write(footer1)
-
+                    html_file.write(content)
+                    html_file.write(footer)
+                    blog_title = split_full_path[-1].rstrip('.html')
+                    # print(blog_title)
+                    # print(end_path)
+                    end_path1 = '\\'.join(split_full_path[blog_folder_len:])
+                    blog_link_template = """           \n<br>            \n<a href="./{0}">{1}</a>\n"""
+                    blog_para = blog_link_template.format(end_path1, blog_title)
+                    # print(blog_para)
+                    index_html.write(blog_para)
+        footer1 = footer.replace('../index.html">博客', '../blog/index.html">博客')
+        index_html.write(footer1)
 
 
 def make_photo_html(folders, html_folder_name):
-    pass
+    photo_base_folder = folders + '/photo'
+    photo_aim_folder = html_folder_name + '/photo'
+    if not os.path.isdir(photo_base_folder):
+        return
+    merge(photo_base_folder, photo_aim_folder)
+    with open((html_folder_name + '/photo/' + 'header.html'), 'r', encoding='utf-8') as f:
+        header = f.read()
+    with open((html_folder_name + '/photo/' + 'footer.html'), 'r', encoding='utf-8') as f:
+        footer = f.read()
+    with open((html_folder_name + '\\photo\\' + 'index.html'), 'w+', encoding='utf-8') as index_html:
+        header1 = header.replace('../index.html">相册', '../photo/index.html">相册')
+        index_html.write(header1)
+        with open('album_info.json', encoding='utf-8') as albums:
+            album_dict = json.load(albums)
+            album_link_template = """      \n<br>            \n<a href="./{0}_{1}/index.html">{2}</a>\n         <br>"""
+            for album in album_dict:
+                aim_album_link = album_link_template.format(album['name'], album['id'], album['name'])
+                print(aim_album_link)
+                index_html.write(aim_album_link)
+            footer1 = footer.replace('../index.html">相册', '../photo/index.html">相册')
+            index_html.write(footer1)
+            # keep fighting
 
 
 def make_shuoshuo_html(folders, html_folder_name):
@@ -118,6 +142,12 @@ def make_shuoshuo_html(folders, html_folder_name):
 
 def make_msg_board_html(folders, html_folder_name):
     pass
+
+
+"""
+记得删除 puck up中的调试注释掉的功能
+记得删除make_blog_html 中调用各个函数的调试注释的功能
+"""
 
 
 def merge(a_path, b_path):  # 合并两个目录
