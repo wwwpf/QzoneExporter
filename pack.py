@@ -23,7 +23,7 @@ def make_html():
             html_folder_name = folders + '_html'
             folders = os.path.join(os.path.abspath('./'), folders)
             html_folder_name = os.path.join(os.path.abspath('./'), html_folder_name)
-            merge('/html', html_folder_name)
+            merge('./html', html_folder_name)
             make_blog_html(folders, html_folder_name)
             make_photo_html(folders, html_folder_name)
             make_shuoshuo_html(folders, html_folder_name)
@@ -58,34 +58,53 @@ def zip_all_files():
 # To-do 替换博客文字页面的图片引用链接，图片保存为本地文件
 def make_blog_html(folders, html_folder_name):
     blog_folder = os.path.join(folders, 'blog')
-    with open(os.path.join(blog_folder, 'header.html'), 'r') as f:
+    with open((html_folder_name + '/blog/' + 'header.html'), 'r', encoding='utf-8') as f:
         header = f.read()
-    with open(os.path.join(blog_folder, 'footer.html'), 'r') as f:
+    with open((html_folder_name + '/blog/' + 'footer.html'), 'r', encoding='utf-8') as f:
         footer = f.read()
+    # print(blog_folder)
+    # print(html_folder_name)
+    # print(header)
+    # print(footer)
     if os.path.isdir(blog_folder):
-        for root, dir, files in os.walk(blog_folder):
-            for name in files:
-                if not name.endswith('.html'):
-                    continue
-                full_path = os.path.join(root, name)
-                split_full_path = full_path.split('\\')
-                end_path = '\\'.join(split_full_path[1:])
-                with open(full_path, 'r') as f, open((html_folder_name + '\\' + end_path), 'wb+') as html_file, \
-                        open((html_folder_name + '\\' + 'index.html')) as index_html:
-                    html_file.write(header.encode())
-                    content = f.read()
-                    content_group = re.search('class="blog_title">([\S\s]*)<div\sclass="blog_footer', content)
-                    if content_group:
-                        content = content_group.group()
-                    html_file.write(content.encode())
-                    html_file.write(footer.encode())
-                    blog_link_templete = """
-                            \n<br>
-        <a href="./{0}/{1}">{2}</a>\n
-                    """
-                    index_html.write(blog_link_templete.format(split_full_path[1], split_full_path[-1],
-                                                               split_full_path[-1].rstrip('.html')))
-
+        with open((html_folder_name + '\\blog\\' + 'index.html'), 'w+', encoding='utf-8') as index_html:
+            header1 = header.replace('../index.html">博客', '../blog/index.html">博客')
+            index_html.write(header1)
+            for root, dir, files in os.walk(blog_folder):
+                for name in files:
+                    if not name.endswith('.html'):
+                        continue
+                    full_path = os.path.join(root, name)
+                    # print(full_path)
+                    split_full_path = full_path.split('\\')
+                    blog_folder_len = len(blog_folder.split('\\'))
+                    end_path = '\\'.join(split_full_path[(blog_folder_len-1):])
+                    html_file_name = html_folder_name + '\\' + end_path
+                    html_file_folder = os.path.split(html_file_name)[0]
+                    if not os.path.isdir(html_file_folder):
+                        os.makedirs(html_file_folder)
+                    with open(full_path, encoding='utf-8') as f, open(html_file_name, 'w+', encoding='utf-8') as\
+                            html_file:
+                        html_file.write(header)
+                        content = f.read()
+                        # print(full_path)
+                        # print(content)
+                        content_group = re.findall('class="blog_title">([\S\s]*)<div\sclass="blog_footer', content)
+                        if content_group:
+                            content = content_group[0]
+                            # print(content)
+                        html_file.write(content)
+                        html_file.write(footer)
+                        blog_title = split_full_path[-1].rstrip('.html')
+                        # print(blog_title)
+                        # print(end_path)
+                        end_path1 = '\\'.join(split_full_path[blog_folder_len:])
+                        blog_link_template = """           \n<br>            \n<a href="./{0}">{1}</a>\n"""
+                        blog_para = blog_link_template.format(end_path1, blog_title)
+                        # print(blog_para)
+                        index_html.write(blog_para)
+            footer1 = footer.replace('../index.html">博客', '../blog/index.html">博客')
+            index_html.write(footer1)
 
 
 
@@ -148,7 +167,7 @@ def pack_up():
             print('    *****正在生成可以浏览的html文件，请稍候.......*****     ')
             print('*************************************************************\n\n')
             make_html()
-            clear()
+            # clear()
             print('*************************************************************')
             print('    *******已生成可以浏览的html文件，请输入3退出*******     ')
             print('*************************************************************\n\n')
