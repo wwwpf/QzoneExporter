@@ -121,19 +121,51 @@ def make_photo_html(folders, html_folder_name):
         header = f.read()
     with open((html_folder_name + '/photo/' + 'footer.html'), 'r', encoding='utf-8') as f:
         footer = f.read()
+    with open((html_folder_name + '/photo/' + 'album_info.json'), encoding='utf-8') as albums:
+        album_dict = json.load(albums)
+        album_dict = album_dict['data']['albumListModeSort']
     with open((html_folder_name + '\\photo\\' + 'index.html'), 'w+', encoding='utf-8') as index_html:
         header1 = header.replace('../index.html">相册', '../photo/index.html">相册')
+        header1 = header1.replace('../../', '../')
         index_html.write(header1)
-        with open('album_info.json', encoding='utf-8') as albums:
-            album_dict = json.load(albums)
-            album_link_template = """      \n<br>            \n<a href="./{0}_{1}/index.html">{2}</a>\n         <br>"""
-            for album in album_dict:
-                aim_album_link = album_link_template.format(album['name'], album['id'], album['name'])
-                print(aim_album_link)
-                index_html.write(aim_album_link)
-            footer1 = footer.replace('../index.html">相册', '../photo/index.html">相册')
-            index_html.write(footer1)
-            # keep fighting
+        album_link_template = """      \n<br>            \n<a href="./{0}_{1}/index.html">{2}</a>\n         <br>"""
+        for album in album_dict:
+            aim_album_link = album_link_template.format(album['name'], album['id'], album['name'])
+            # print(aim_album_link)
+            index_html.write(aim_album_link)
+        footer1 = footer.replace('../index.html">相册', '../photo/index.html">相册')
+        footer1 = footer1.replace('../../', '../')
+        index_html.write(footer1)
+    for album in album_dict:
+        album_folder = photo_base_folder + '\\' + "{0}_{1}/".format(album['name'], album['id'])
+        if os.path.isdir(album_folder):
+            file_list = os.listdir(album_folder)
+        else:
+            continue
+        # header2 = header.replace('../index.html">相册', '../../photo/index.html">相册')
+        # footer2 = footer.replace('../index.html">相册', '../../photo/index.html">相册')
+        with open((album_folder + '/index.html'), 'w+', encoding='utf-8') as album_index:
+            album_index.write(header)
+            for file in file_list:
+                if file.endswith('.json') and file.startswith('photo'):
+                    with open(os.path.join(album_folder, file), encoding='utf-8') as album_json:
+                        photo_dict = json.load(album_json)
+                        # print(photo_dict['data'])
+                        photo_list = photo_dict['data']['photoList']
+                        photo_link_template = """
+                              \n<br>            \n{0}<br><img src="./downloaded/{1}.{2}"  alt="{3}" />\n         <br>"""
+                        for photo in photo_list:
+                            if photo['phototype'] == 1:
+                                suffix = 'jpeg'
+                            elif photo['phototype'] == 2:
+                                suffix = 'gif'
+                            elif photo['phototype'] == 3:
+                                suffix = 'png'
+                            else:
+                                suffix = 'jpeg'
+                            photo_link = photo_link_template.format(photo['name'], photo['lloc'].replace('*', '%2A'), suffix, photo['name'])
+                            album_index.write(photo_link)
+            album_index.write(footer)
 
 
 def make_shuoshuo_html(folders, html_folder_name):
