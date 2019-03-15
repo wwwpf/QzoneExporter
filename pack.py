@@ -253,7 +253,88 @@ def make_shuoshuo_html(folders, html_folder_name):
 
 
 def make_msg_board_html(folders, html_folder_name):
-    pass
+    msg_board_base_folder = folders + '/msg_board'
+    msg_board_aim_folder = html_folder_name + '/msg_board'
+    if not os.path.isdir(msg_board_base_folder):
+        return
+    merge(msg_board_base_folder, msg_board_aim_folder)
+    with open((html_folder_name + '/msg_board/' + 'header.html'), 'r', encoding='utf-8') as f:
+        header = f.read()
+    with open((html_folder_name + '/msg_board/' + 'footer.html'), 'r', encoding='utf-8') as f:
+        footer = f.read()
+    with open((html_folder_name + '\\msg_board\\' + 'index.html'), 'w+', encoding='utf-8') as index_html:
+        index_html.write(header)
+        msg_board_link_template = """      \n<br>            \n<a href="./{0}.html">{1}</a>\n         <br>"""
+        for root, dir_names, file_names in os.walk(msg_board_aim_folder):
+            for file_name in file_names:
+                if file_name.endswith('.json') and file_name.startswith('msg_board'):
+                    file_name_list = file_name.split('.')
+                    # print(file_name)
+                    # print(file_name_list[0])
+                    msg_board_link = msg_board_link_template.format(file_name_list[0], file_name_list[0])
+                    index_html.write(msg_board_link)
+        index_html.write(footer)
+    file_names = os.listdir(msg_board_aim_folder)
+    # print(file_names)
+    for file_name in file_names:
+        if file_name.endswith('.json') and file_name.startswith('msg_board'):
+            file_name_list = file_name.split('.')
+            with open((html_folder_name + '/msg_board/' + file_name_list[0] + '.html'), 'w+', encoding='utf-8') as \
+                    aim_html, open((html_folder_name + '/msg_board/' + file_name), 'r', encoding='utf-8') as aim_json:
+                aim_html.write(header)
+                msg_board_dict = json.load(aim_json)
+                ############################ keep fighting
+                msg_board_list = msg_board_dict['commentList']
+                """
+                <div class="msg_board">
+                    <div class="msg_board-time"><span>{发布时间}</span></div>
+                    <div class="msg_board-content">
+                        <p class="weibo-text">{说说内容}{图片} </p>
+                    </div>\n
+                    {评论内容}
+                </div>\n
+                    """
+                msg_board_template = """
+            <div class="msg_board">
+                <div class="msg_board-time"><span>{0}##</span></div>
+                <div class="msg_board-content">
+                    <p class="weibo-text">{1}{2} </p>
+                </div>\n
+                {3}
+            </div>\n
+                """
+                msg_board_comment_template = '<br><div class="comment" id={0}><span uid="{1}">{2}<span>:{3}@{4}</div>'
+                # <div class="comment" id={评论序号}><span uid="{作者qq}">{作者昵称}<span>:{评论内容}@{评论时间}</div>
+                msg_board_comment_reply_template = '<br><div class="comment_reply" id={0}>' \
+                                                  '<span uid="{1}">{2}<span>:{3}@{4}</div>'
+                # <div class="comment" id={评论序号}><span uid="{作者qq}">{作者昵称}回复{评论者}<span>:{评论内容}@{评论时间}</div>
+                msg_board_pic_template = '<br><div class="comment_pic"> <img src="{0}"></div>'
+                for msg_board in msg_board_list:
+                    # 如果说说存在评论
+                    msg_board_comment = '<br>'
+                    if 'commentlist' in msg_board.keys():
+                        for comment in msg_board['commentlist']:
+                            msg_board_comment = msg_board_comment + msg_board_comment_template.format(
+                                comment['tid'], comment['uin'], comment['name'], comment['content'],
+                                comment['createTime'])
+                            # 如果评论的回复存在
+                            msg_board_reply = '<br>'
+                            if 'list_3' in comment.keys():
+                                for reply in comment['list_3']:
+                                    msg_board_reply = msg_board_reply + msg_board_comment_reply_template.format(
+                                        reply['tid'], reply['uin'], reply['name'], reply['content'],
+                                        reply['createTime'])
+                            # 合并所有的评论
+                            msg_board_comment = msg_board_comment + msg_board_reply
+                    # 如果说说存在图片
+                    msg_board_pic = ''
+                    if 'pic' in msg_board.keys():
+                        for pic in msg_board['pic']:
+                            msg_board_pic = msg_board_pic + msg_board_pic_template.format(pic['url2'])
+                    msg_board_html = msg_board_template.format(
+                        msg_board['createTime'], msg_board['content'], msg_board_pic, msg_board_comment)
+                    aim_html.write(msg_board_html)
+                aim_html.write(footer)
 
 
 """
