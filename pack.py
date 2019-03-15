@@ -31,7 +31,7 @@ def make_html():
             # 记得取消下面4行的注释  folders 是qq备份的文件夹，html_folder_name 是目标文件夹
             # make_blog_html(folders, html_folder_name)
             # make_photo_html(folders, html_folder_name)
-            make_shuoshuo_html(folders, html_folder_name)
+            # make_shuoshuo_html(folders, html_folder_name)
             make_msg_board_html(folders, html_folder_name)
         else:
             continue
@@ -93,13 +93,13 @@ def make_blog_html(folders, html_folder_name):
                     content = f.read()
                     # print(full_path)
                     # print(content)
-                    content_group = re.findall('class="blog_title">([\S\s]*)<div\sclass="blog_footer', content)
+                    content_group = re.findall('class="blog_title">([.\n]*)<div\sclass="blog_footer', content)
                     if content_group:
                         content = content_group[0]
                         # print(content)
                     html_file.write(content)
                     html_file.write(footer)
-                    blog_title = split_full_path[-1].rstrip('.html')
+                    blog_title = split_full_path[-1].rstrip(".html")
                     # print(blog_title)
                     # print(end_path)
                     end_path1 = '\\'.join(split_full_path[blog_folder_len:])
@@ -168,31 +168,36 @@ def make_photo_html(folders, html_folder_name):
             album_index.write(footer)
 
 
+# To-do 1.替换说说中的图片为本地图片，并且下载图片到本地；2.支持emoji表情
 def make_shuoshuo_html(folders, html_folder_name):
     shuoshuo_base_folder = folders + '/shuoshuo'
     shuoshuo_aim_folder = html_folder_name + '/shuoshuo'
     if not os.path.isdir(shuoshuo_base_folder):
         return
     merge(shuoshuo_base_folder, shuoshuo_aim_folder)
-    with open((html_folder_name + '/photo/' + 'header.html'), 'r', encoding='utf-8') as f:
+    with open((html_folder_name + '/shuoshuo/' + 'header.html'), 'r', encoding='utf-8') as f:
         header = f.read()
-    with open((html_folder_name + '/photo/' + 'footer.html'), 'r', encoding='utf-8') as f:
+    with open((html_folder_name + '/shuoshuo/' + 'footer.html'), 'r', encoding='utf-8') as f:
         footer = f.read()
     with open((html_folder_name + '\\shuoshuo\\' + 'index.html'), 'w+', encoding='utf-8') as index_html:
         index_html.write(header)
-        shuoshuo_link_template = """      \n<br>            \n<a href="./{0}.html">{2}</a>\n         <br>"""
+        shuoshuo_link_template = """      \n<br>            \n<a href="./{0}.html">{1}</a>\n         <br>"""
         for root, dir_names, file_names in os.walk(shuoshuo_aim_folder):
             for file_name in file_names:
                 if file_name.endswith('.json') and file_name.startswith('shuoshuo'):
                     file_name_list = file_name.split('.')
+                    # print(file_name)
+                    # print(file_name_list[0])
                     shuoshuo_link = shuoshuo_link_template.format(file_name_list[0], file_name_list[0])
                     index_html.write(shuoshuo_link)
         index_html.write(footer)
     file_names = os.listdir(shuoshuo_aim_folder)
+    # print(file_names)
     for file_name in file_names:
         if file_name.endswith('.json') and file_name.startswith('shuoshuo'):
             file_name_list = file_name.split('.')
-            with open((file_name_list[0] + '.html'), 'w+', encoding='utf-8') as aim_html, open(file_name, 'w+', encoding='utf-8') as aim_json:
+            with open((html_folder_name + '/shuoshuo/' + file_name_list[0] + '.html'), 'w+', encoding='utf-8') as\
+                    aim_html, open((html_folder_name + '/shuoshuo/' + file_name), 'r', encoding='utf-8') as aim_json:
                 aim_html.write(header)
                 shuoshuo_dict = json.load(aim_json)
                 shuoshuo_list = shuoshuo_dict['msglist']
@@ -200,32 +205,51 @@ def make_shuoshuo_html(folders, html_folder_name):
                 <div class="shuoshuo">
                     <div class="shuoshuo-time"><span>{发布时间}</span></div>
                     <div class="shuoshuo-content">
-                        <p class="weibo-text">{说说内容} </p>
+                        <p class="weibo-text">{说说内容}{图片} </p>
                     </div>\n
                     {评论内容}
                 </div>\n
                     """
                 shuoshuo_template = """
             <div class="shuoshuo">
-	            <div class="shuoshuo-time"><span>{0}</span></div>
-	            <div class="shuoshuo-content">
-	                <p class="weibo-text">{1} </p>
-	            </div>\n
-	            {2}
-	        </div>\n
+                <div class="shuoshuo-time"><span>{0}##</span></div>
+                <div class="shuoshuo-content">
+                    <p class="weibo-text">{1}{2} </p>
+                </div>\n
+                {3}
+            </div>\n
                 """
-                shuoshuo_comment_template = '<div class="comment" id={0}><span uid="{1}">{2}<span>:{3}@{4}</div>'
+                shuoshuo_comment_template = '<br><div class="comment" id={0}><span uid="{1}">{2}<span>:{3}@{4}</div>'
                 # <div class="comment" id={评论序号}><span uid="{作者qq}">{作者昵称}<span>:{评论内容}@{评论时间}</div>
+                shuoshuo_comment_reply_template = '<br><div class="comment_reply" id={0}>' \
+                                                  '<span uid="{1}">{2}<span>:{3}@{4}</div>'
+                # <div class="comment" id={评论序号}><span uid="{作者qq}">{作者昵称}回复{评论者}<span>:{评论内容}@{评论时间}</div>
+                shuoshuo_pic_template = '<br><div class="comment_pic"> <img src="{0}"></div>'
                 for shuoshuo in shuoshuo_list:
-                    if shuoshuo['commentlist']:
+                    # 如果说说存在评论
+                    shuoshuo_comment = '<br>'
+                    if 'commentlist' in shuoshuo.keys():
                         for comment in shuoshuo['commentlist']:
-                            shuoshuo_comment = shuoshuo_comment_template.format()
-                            aim_html.write(shuoshuo_comment)
-                    shuoshuo_html = shuoshuo_template.format()
+                            shuoshuo_comment = shuoshuo_comment + shuoshuo_comment_template.format(
+                                comment['tid'], comment['uin'], comment['name'], comment['content'],
+                                comment['createTime'])
+                            # 如果评论的回复存在
+                            shuoshuo_reply = '<br>'
+                            if 'list_3' in comment.keys():
+                                for reply in comment['list_3']:
+                                    shuoshuo_reply = shuoshuo_reply + shuoshuo_comment_reply_template.format(
+                                        reply['tid'], reply['uin'], reply['name'], reply['content'], reply['createTime'])
+                            # 合并所有的评论
+                            shuoshuo_comment = shuoshuo_comment + shuoshuo_reply
+                    # 如果说说存在图片
+                    shuoshuo_pic = ''
+                    if 'pic' in shuoshuo.keys():
+                        for pic in shuoshuo['pic']:
+                            shuoshuo_pic = shuoshuo_pic + shuoshuo_pic_template.format(pic['url2'])
+                    shuoshuo_html = shuoshuo_template.format(
+                        shuoshuo['createTime'], shuoshuo['content'], shuoshuo_pic, shuoshuo_comment)
                     aim_html.write(shuoshuo_html)
                 aim_html.write(footer)
-                # keep fighting
-        break
 
 
 def make_msg_board_html(folders, html_folder_name):
