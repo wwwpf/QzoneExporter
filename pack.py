@@ -29,9 +29,9 @@ def make_html():
                 os.makedirs(html_folder_name)
             merge('./html', html_folder_name)
             # 记得取消下面4行的注释  folders 是qq备份的文件夹，html_folder_name 是目标文件夹
-            # make_blog_html(folders, html_folder_name)
-            # make_photo_html(folders, html_folder_name)
-            # make_shuoshuo_html(folders, html_folder_name)
+            make_blog_html(folders, html_folder_name)
+            make_photo_html(folders, html_folder_name)
+            make_shuoshuo_html(folders, html_folder_name)
             make_msg_board_html(folders, html_folder_name)
         else:
             continue
@@ -71,8 +71,11 @@ def make_blog_html(folders, html_folder_name):
     # print(html_folder_name)
     # print(header)
     # print(footer)
+    header1 = header.replace('../index.html">博客', '../blog/index.html">博客')
+    header1 = header1.replace('../../', '../')
+    footer1 = footer.replace('../index.html">博客', '../blog/index.html">博客')
+    footer1 = footer1.replace('../../', '../')
     with open((html_folder_name + '\\blog\\' + 'index.html'), 'w+', encoding='utf-8') as index_html:
-        header1 = header.replace('../index.html">博客', '../blog/index.html">博客')
         index_html.write(header1)
         for root, dir, files in os.walk(blog_folder):
             for name in files:
@@ -93,9 +96,10 @@ def make_blog_html(folders, html_folder_name):
                     content = f.read()
                     # print(full_path)
                     # print(content)
-                    content_group = re.findall('class="blog_title">([.\n]*)<div\sclass="blog_footer', content)
+                    content_group = re.findall('class="blog_title">([\S\s]*)<div\sclass="blog_footer', content)
                     if content_group:
                         content = content_group[0]
+                        content = re.sub('<base.+?>', '', content)
                         # print(content)
                     html_file.write(content)
                     html_file.write(footer)
@@ -107,7 +111,6 @@ def make_blog_html(folders, html_folder_name):
                     blog_para = blog_link_template.format(end_path1, blog_title)
                     # print(blog_para)
                     index_html.write(blog_para)
-        footer1 = footer.replace('../index.html">博客', '../blog/index.html">博客')
         index_html.write(footer1)
 
 
@@ -283,57 +286,36 @@ def make_msg_board_html(folders, html_folder_name):
                     aim_html, open((html_folder_name + '/msg_board/' + file_name), 'r', encoding='utf-8') as aim_json:
                 aim_html.write(header)
                 msg_board_dict = json.load(aim_json)
-                ############################ keep fighting
-                msg_board_list = msg_board_dict['commentList']
-                """
-                <div class="msg_board">
-                    <div class="msg_board-time"><span>{发布时间}</span></div>
-                    <div class="msg_board-content">
-                        <p class="weibo-text">{说说内容}{图片} </p>
-                    </div>\n
-                    {评论内容}
-                </div>\n
-                    """
-                msg_board_template = """
-            <div class="msg_board">
-                <div class="msg_board-time"><span>{0}##</span></div>
-                <div class="msg_board-content">
-                    <p class="weibo-text">{1}{2} </p>
-                </div>\n
-                {3}
-            </div>\n
-                """
-                msg_board_comment_template = '<br><div class="comment" id={0}><span uid="{1}">{2}<span>:{3}@{4}</div>'
-                # <div class="comment" id={评论序号}><span uid="{作者qq}">{作者昵称}<span>:{评论内容}@{评论时间}</div>
-                msg_board_comment_reply_template = '<br><div class="comment_reply" id={0}>' \
-                                                  '<span uid="{1}">{2}<span>:{3}@{4}</div>'
+                msg_board_welcome = msg_board_dict.get('data', "'date':'{'htmlMsg': '欢迎留言！'}'").get\
+                    ('authorInfo', "{'htmlMsg': '欢迎留言！'}").get('htmlMsg', '欢迎留言！')
+                aim_html.write(msg_board_welcome.replace('\\', ''))
+                msg_board_nothing = dict(id="0", pubtime="2012-04-13 18:43:04", uin=10000, nickname="system",
+                                         htmlContent="过来问候一下")
+                msg_board_list = msg_board_dict.get('data', dict(commentList=msg_board_nothing)).\
+                    get('commentList', msg_board_nothing)
+                msg_board_comment_template = '<br><div class="message" id={0}><span uid="{1}">{2}<span>:{3}@{4}</div>'
+                # <div class="comment" id={留言序号}><span uid="{作者qq}">{作者昵称}<span>:{留言内容}@{留言时间}</div>
+                msg_board_comment_reply_template = '<br><div class="message_reply">' \
+                                                   '<span uid="{0}">{1}<span>:{2}</div>'
                 # <div class="comment" id={评论序号}><span uid="{作者qq}">{作者昵称}回复{评论者}<span>:{评论内容}@{评论时间}</div>
-                msg_board_pic_template = '<br><div class="comment_pic"> <img src="{0}"></div>'
-                for msg_board in msg_board_list:
-                    # 如果说说存在评论
-                    msg_board_comment = '<br>'
-                    if 'commentlist' in msg_board.keys():
-                        for comment in msg_board['commentlist']:
-                            msg_board_comment = msg_board_comment + msg_board_comment_template.format(
-                                comment['tid'], comment['uin'], comment['name'], comment['content'],
-                                comment['createTime'])
-                            # 如果评论的回复存在
-                            msg_board_reply = '<br>'
-                            if 'list_3' in comment.keys():
-                                for reply in comment['list_3']:
-                                    msg_board_reply = msg_board_reply + msg_board_comment_reply_template.format(
-                                        reply['tid'], reply['uin'], reply['name'], reply['content'],
-                                        reply['createTime'])
-                            # 合并所有的评论
-                            msg_board_comment = msg_board_comment + msg_board_reply
-                    # 如果说说存在图片
-                    msg_board_pic = ''
-                    if 'pic' in msg_board.keys():
-                        for pic in msg_board['pic']:
-                            msg_board_pic = msg_board_pic + msg_board_pic_template.format(pic['url2'])
-                    msg_board_html = msg_board_template.format(
-                        msg_board['createTime'], msg_board['content'], msg_board_pic, msg_board_comment)
-                    aim_html.write(msg_board_html)
+                msg_board_comment = '<br>'
+                for comment in msg_board_list:
+                    # 如果留言存在评论
+                    # print(msg_board_list)
+                    msg_board_comment = msg_board_comment + msg_board_comment_template.format(
+                        comment['id'], comment['uin'], comment['nickname'],
+                        comment['htmlContent'].replace('\\', ''), comment['pubtime'])
+                    # 如果评论的回复存在
+                    msg_board_reply = '<br>'
+                    if 'replyList' in comment.keys() and len(comment['replyList']):
+                        for reply in comment['replyList']:
+                            # print(reply)
+                            msg_board_reply = msg_board_reply + msg_board_comment_reply_template.format(
+                                reply['uin'], reply['nick'], reply['content'])
+                    # print(msg_board_reply)
+                    # 留言合并所有的评论
+                    msg_board_comment = msg_board_comment + msg_board_reply
+                aim_html.write(msg_board_comment)
                 aim_html.write(footer)
 
 
@@ -366,16 +348,16 @@ def merge(a_path, b_path):  # 合并两个目录
 
 
 def pack_up():
-    choice_tips = """备份文件打包脚本
+    choice_tips = """\n\n                  Qzone备份文件打包脚本
 
     生成可以浏览的html文件备份版本、打包为单独文件夹和压缩包。
 
-    (0)、生成可以浏览的html文件
-    (1)、创建压缩包备份
-    (2)、生成tml文件并建立压缩包
-    (3)、退出
+    (1)、生成可以浏览的html文件
+    (2)、创建压缩包备份
+    (3)、生成tml文件并建立压缩包
+    (4)、退出
 
-    请输入选项数字0~3并按回车："""
+    请输入选项数字1~4并按回车："""
     end = 1
     while end:
         kk = input(choice_tips)
@@ -384,17 +366,17 @@ def pack_up():
             kk = int(kk)
         except ImportError:
             kk = 10
-        if kk == 0:
+        if kk == 1:
             clear()
             print('*************************************************************')
             print('    *****正在生成可以浏览的html文件，请稍候.......*****     ')
             print('*************************************************************\n\n')
             make_html()
-            # clear()
+            clear()
             print('*************************************************************')
             print('    *******已生成可以浏览的html文件，请输入3退出*******     ')
             print('*************************************************************\n\n')
-        elif kk == 1:
+        elif kk == 2:
             clear()
             print('***********************************************************')
             print('     **********正在创建压缩包，请稍候.......**********     ')
@@ -404,7 +386,7 @@ def pack_up():
             print('*************************************************************')
             print('     **************已打包文件，请输入3退出**************     ')
             print('*************************************************************\n\n')
-        elif kk == 2:
+        elif kk == 3:
             clear()
             print('***********************************************************')
             print('  ******正在生成tml文件并建立压缩包，请稍候.......******  ')
@@ -417,7 +399,7 @@ def pack_up():
             print('*************************************************************')
             print('   ***********已生成html文件并压缩，请输入3退出***********   ')
             print('*************************************************************\n\n')
-        elif kk == 3:
+        elif kk == 4:
             clear()
             print('正在退出，请稍候.......')
             time.sleep(2)
