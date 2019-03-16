@@ -5,6 +5,7 @@ QQ空间数据导出。
 - 导出日志、留言板、相册、说说、点赞数据。
 - 将说说、相册中的图片及视频下载至本地。
 - 支持 Exif 信息写回照片，时间写入文件名。（由[Yang-z](https://github.com/wwwpf/QzoneExporter/pull/8)及[greysign](https://github.com/wwwpf/QzoneExporter/pull/5)提供）
+- 生成html文件和将html文件打包
 
 ```shell
 usage: exporter.py [-h] [--blog] [--msgboard] [--photo] [--shuoshuo] [--like]
@@ -19,6 +20,10 @@ optional arguments:
   --like      导出点赞数据，需要设置--photo或--shuoshuo
   --download  下载图片或视频至本地
   --all       导出所有数据
+  
+  
+pack.py 
+  shell界面提示操作
 ```
 
 ## 输入
@@ -28,8 +33,12 @@ optional arguments:
 - self_uin
   用于登录空间的QQ号
 - g_tk, cookies_value
-  从浏览器登录QQ空间，按 `F12`，点击 `Network` 选项卡，点击QQ空间“我的主页“，点击 `XHR`，点击 `main_page_cgi` 请求，从 `Header` 中找出 `g_tk` 及 `cookie`。如图所示：
+  从浏览器登录QQ空间，按 `F12`，点击 `Network` 选项卡，点击QQ空间“我的主页“，点击 `XHR`，点击 `main_page_cgi` 请求，从 `Header` 中找出 `g_tk` 及 `cookie`。
+  如图所示：
   ![获取g_tk及cookie](pic/1.png)
+  
+  参考图2
+  ![](pic/2.png)
 
 登录QQ需要有访问目标QQ空间的权限。
 
@@ -141,6 +150,16 @@ python exporter.py --photo --download
 
 - 某些图片通过sharpP格式传输，无法打开。
 - 进度的保存。
+- 保持的json文件，blog中的图片为链接模式，未下载为本地图片
+- 保存为html文件后无css文件（html文件展示未美化）
+
+## To-do
+
+- [ ] 增加图片保存功能，将blog中的贴图保存为本地文件。
+- [ ] 添加保存进度效果。
+- [ ] 求大神赐css文件，美化html展示效果。
+- [ ] others
+
 
 ## 参考
 
