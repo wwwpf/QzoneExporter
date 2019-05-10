@@ -1,0 +1,163 @@
+{% extends "index_base.html" %}
+{% from "pagelist.html" import shuoshuo_pagelist %}
+{% from "tools.html" import avatar %}
+{% from "tools.html" import comment_op %}
+{% from "tools.html" import generate_media_list %}
+{% from "tools.html" import nickname %}
+{% from "tools.html" import shuoshuo_comment_content %}
+{% block stylesheet %}
+<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/say.css')}}" />
+{% endblock %}
+{% block content %}
+{{shuoshuo_pagelist(current_page, total_page, "page_go_top")}}
+<div class="app_mood" id="app_mod">
+  <div class="feed_wrap">
+    <ol class="mod_feed_lst js_error_display">
+      {% for msg in msglist %}
+      <li class="feed">
+        <div class="avatar">
+          {{avatar(msg["uin"], 100, 50)}}
+        </div>
+        <div class="box bgr3">
+          <div class="arr bor3">
+            <div class="bor_bg3"></div>
+          </div>
+          <div class="bd">
+            <a class="qz_311_author c_tx nickname goProfile" href="/{{msg['uin']}}">{{msg["name"]|content_beautify|safe}}</a>
+            <pre style="display:inline;" class="content">{{msg["content"]|content_beautify|safe}}</pre>
+            <span></span>
+            <div class="f_toggle">
+              <a href="javascript:void(0);" onclick="return false;" class="has_more_con "></a>
+            </div>
+          </div>
+          {% if msg["rt_con"] %}
+          <div class="md rt_content">
+            <div class="quote bor2">
+              <div class="bd">
+                <a class="nickname" href="/{{msg['rt_uin']}}">{{msg["rt_uinname"]|content_beautify|safe}}</a>
+                <pre style="display:inline;">{{msg["rt_con"]["content"]|content_beautify|safe}}</pre>
+              </div>
+              {% include "shuoshuo_md.html" %}
+              <div class="ft">
+                <div class="info">
+                  <span class="c_tx3">
+                    <a class="c_tx c_tx3 goDetail" title="{{msg['rt_createTime']}}">
+                      {{msg["rt_createTime"]}}
+                    </a>
+                  </span>
+                </div>
+                <div class="op">
+                  <span>
+                    <a class="c_tx comment_btn">评论({{msg["rt_cmtnum"]}})</a>
+                    <a class="c_tx forward_btn">转发({{msg["rt_fwdnum"]}})</a>
+                  </span>
+                </div>
+              </div>
+              <div class="chain c_tx3">
+                {% with %}
+                {% if msg["rtlist"] | length > 0 %}
+                  {% for rt_user in msg["rtlist"] %}
+                  {% if loop.first %}
+                    <a href="/{{rt_user['uin']}}">{{rt_user["name"]|content_beautify|safe}}</a>
+                  {% else %}
+                    、<a href="/{{rt_user['uin']}}">{{rt_user["name"]|content_beautify|safe}}</a>
+                  {% endif %}
+                  {% endfor %}
+                  转发过
+                {% endif %}
+                {% endwith %}
+              </div>
+            </div>
+          </div>
+          {% else %}
+            {% include "shuoshuo_md.html" %}
+          {% endif %}
+          <div class="ft">
+            <div class="info">
+              <span class="c_tx3">
+                <a class="c_tx c_tx3 goDetail" title="{{msg['created_time']|format_datetime}}">
+                  {{msg["created_time"]|format_datetime}}
+                </a>
+              </span>
+              {% if msg["source_name"] %}
+              <span class="c_tx3">
+                来自
+                <span class="custom-tail" title="{{msg['source_name']}}">{{msg["source_name"]}}</span>
+              </span>
+              {% endif %}
+            </div>
+            <div class="op">
+              <span>
+                {% set comment_num = 0 %}
+                {% if msg["commentlist"] %}
+                  {% set comment_num = msg["commentlist"] | length %}
+                {% endif %}
+                <a class="c_tx comment_btn">评论({{comment_num}})</a>
+                <a class="c_tx forward_btn">转发({{msg["fwdnum"]}})</a>
+              </span>
+            </div>
+          </div>
+          <div class="box_extra bor3">
+            <div class="box_extra_arr bor3">
+              <div class="bor_bg3"></div>
+            </div>
+            <div class="feed_like" style="display:none;">
+              <i class="icon_zan">666666人觉得很赞</i>
+            </div>
+            <div class="mod_comment">
+              <div class="mod_comments">
+                <div class="comments_list">
+                  <ul>
+                    {% set comment_list = [] %}
+                    {% if msg["commentlist"] %}
+                      {% set comment_list = msg["commentlist"] %}
+                    {% endif %}
+                    {% for comment in comment_list %}
+                    <li class="comments_item bor3">
+                      <div class="comments_item_bd">
+                        <div>
+                          <div class="ui_avatar">
+                            {{avatar(comment["uin"], 50, 35)}}
+                          </div>
+                          <div class="comments_content">
+                            {{nickname(comment["uin"],comment["name"])}}: <span>{{comment["content"]|content_beautify|safe}}</span>
+                            <div class="cmt-figure">
+                              {{generate_media_list(comment, uin, download_if_not_exist, 80, 80)}}
+                            </div>
+                            {{comment_op(comment["create_time"])}}
+                          </div>
+                        </div>
+                        <div class="mod_comments_sub">
+                          <ol>
+                            {% for reply in comment["list_3"] %}
+                            <li class="comments_item bor3">
+                              <div class="comments_item_bd">
+                                <div class="ui_avatar">
+                                  {{avatar(reply["uin"], 50, 35)}}
+                                </div>
+                                {{shuoshuo_comment_content(reply)}}
+                              </div>
+                            </li>
+                            {% endfor %}
+                          </ol>
+                        </div>
+                      </div>
+                    </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="box_shadow">
+          <div class="shadow_left"></div>
+          <div class="shadow_right"></div>
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+</div>
+{{shuoshuo_pagelist(current_page, total_page, "page_go_bottom")}}
+{% endblock %}

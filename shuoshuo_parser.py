@@ -1,13 +1,10 @@
-import json
 import logging
 import math
 import os
 
-import requests
-
-import config
-from download import (Downloader, export_comment_media_url,
-                      export_content_media_url)
+from config import QzoneFileName, QzonePath
+from download import Downloader
+from media_info import export_media_url
 from saver import Saver
 from tools import get_json_data_from_response, logging_wrap, random_sleep
 
@@ -16,12 +13,12 @@ class ShuoShuoParser(Saver):
 
     _shuoshuo_count = 0
 
-    def __init__(self, account_info, json_data, begin, end, dir="."):
-        Saver.__init__(self, json_data, dir, config.SHUOSHUO_PATH)
+    def __init__(self, account_info, json_data, begin, end, directory="."):
+        Saver.__init__(self, json_data, directory, QzonePath.SHUOSHUO)
 
         self._account_info = account_info
 
-        self._file_name = "shuoshuo_%05d-%05d.json" % (begin, end - 1)
+        self._filename = "shuoshuo_%05d-%05d.json" % (begin, end - 1)
 
     @logging_wrap
     def _parse_single_shuoshuo(self, tid, comment_num):
@@ -67,7 +64,7 @@ class ShuoShuoParser(Saver):
         if "msglist" in self.json_data:
             msglist = self.json_data["msglist"]
             tid_file = os.path.join(
-                self.directory_path, config.SHUOSHUO_TID_FILE)
+                self.directory_path, QzoneFileName.SHUOSHUO_TID)
             with open(tid_file, "a", encoding="utf-8") as f:
                 for i in range(0, len(msglist)):
                     msg = msglist[i]
@@ -88,27 +85,21 @@ class ShuoShuoParser(Saver):
                         for comment in comment_list:
                             if comment["uin"] != self._account_info.self_uin \
                                     or need_download_media:
-                                export_comment_media_url(
-                                    comment, self.directory_path)
+                                export_media_url(comment, self.directory_path)
 
                     if self._account_info.target_uin != self._account_info.self_uin \
                             or need_download_media:
-                        for media_type in config.MEDIA_TYPE:
-                            if media_type in msg:
-                                medias = msg[media_type]
-                                for media in medias:
-                                    export_content_media_url(
-                                        media, media_type, self.directory_path)
+                        export_media_url(msg, self.directory_path)
 
                     ShuoShuoParser._shuoshuo_count += 1
 
                     if need_sleep:
                         random_sleep(0, 1)
 
-        self.save(self._file_name)
+        self.save(self._filename)
 
 
 class ShuoShuoMediaDownloader(Downloader):
-    def __init__(self, dir):
-        Downloader.__init__(self, config.TO_DOWNLOAD_FILE, config.DOWNLOADED_FILE,
-                            os.path.join(dir, config.SHUOSHUO_PATH))
+    def __init__(self, directory):
+        Downloader.__init__(self, QzoneFileName.TO_DOWNLOAD, QzoneFileName.DOWNLOADED,
+                            os.path.join(directory, QzonePath.SHUOSHUO))

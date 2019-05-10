@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<html>
+
+  <head>
+    <meta name="referrer" content="never">
+    <link rel="shortcut icon" href="{{url_for('static', filename='html/static/favicon.ico')}}">
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/35.css')}}" />
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/ui-dialog.css')}}" />
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/icenter.css')}}" />
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/qzone_exporter.css')}}" />
+    <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.8.0.js"></script>
+    <script type="text/javascript" src="{{url_for('static', filename='html/static/qzone_exporter.js')}}"></script>
+    {% block title %}
+    <title>
+      QzoneExporter
+    </title>
+    {% endblock %}
+    {% block stylesheet %}
+    {% endblock %}
+    {% block scripts %}
+    {% endblock %}
+  </head>
+
+  <body>
+    <div id="home" class="top_container">
+      <div class="top-fix-bar">
+        <div class="top-fix-inner">
+          <div class="top-fix-container" id="QZ_Toolbar_Container">
+            <div class="top-fix-wrap">
+              <a class="logo" href="/" title="QQ空间">QQ空间</a>
+              {% block nav %}
+              {% endblock %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="content">
+      {% block content %}
+      {% endblock %}
+    </div>
+    {% block background %}
+    {% endblock %}
+    <div class="fix-layout">
+      <div class="gb-operation-area" id="_returnTop_layout_inner">
+        <a href="#" id="goto_top_btn" class="gb-operation-button return-top">
+          <i class="gb-operation-icon" title="返回顶部"></i>
+          <span class="gb-operation-text">顶部</span>
+        </a>
+      </div>
+    </div>
+    <div id="footer">
+      {% block footer %}
+      <footer>
+        made by <a href="https://github.com/wwwpf/QzoneExporter">QzoneExporter</a>
+      </footer>
+      {% endblock %}
+    </div>
+  </body>
+
+</html>

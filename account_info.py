@@ -2,7 +2,7 @@ import logging
 
 import requests
 
-import config
+from config import RETRY_TIMES, HEADERS
 from tools import logging_wrap
 
 
@@ -64,8 +64,8 @@ class AccountInfo(object):
     @logging_wrap
     def get_url(self, url, **kwargs):
         r = None
-        for _ in range(config.RETRY_TIMES):
-            r = requests.get(url, headers=config.HEADERS,
+        for _ in range(RETRY_TIMES):
+            r = requests.get(url, headers=HEADERS,
                              cookies=self._cookies_pair, **kwargs)
             if r.ok:
                 return r
@@ -74,5 +74,5 @@ class AccountInfo(object):
 
     @logging_wrap
     def post_url(self, url, **kwargs):
-        return requests.post(url, headers=config.HEADERS,
+        return requests.post(url, headers=HEADERS,
                              cookies=self._cookies_pair, **kwargs)

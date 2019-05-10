@@ -1,0 +1,145 @@
+{% from "tools.html" import avatar %}
+{% from "tools.html" import comments_content %}
+{% from "tools.html" import comment_op %}
+{% from "tools.html" import generate_photo_comment_media_list %}
+{% from "tools.html" import nickname %}
+{% with %}
+{% set photo = floatview_photos[photo_index] %}
+{% set photo_number = floatview_photos | length %}
+{% set media_info = photo|extract_media_info_from_photo("picKey") %}
+<div id="js-viewer-layer" class="photo_bg_layer js-viewer-layer" style="height:100%;"></div>
+<!--图片区S-->
+<div class="photo_figure" id="js-viewer-figure" style="margin-top: 0px;margin-left: 0px;">
+  <div class="photo_figure_main" id="js-viewer-main" style="height:100%;">
+    <div class="photo_layer_close" title="关闭" onclick="hideElement('js-viewer-container')">
+      <a href="javascript:void(0);">关闭</a>
+    </div>
+    <!--图片展示区S-->
+    <div class="figure_area" id="js-viewer-imgWraper" style="margin-top: 0px; margin-left: 10px;">
+      <div class="figure_img" id="js-image-ctn"
+        style="-moz-user-select:none;position:relative; width: 100%; height:100%;"
+        onmouseover="mouseOver('js-btn-prevPhoto','js-btn-nextPhoto');"
+        onmouseout="mouseOut('js-btn-prevPhoto','js-btn-nextPhoto');" onselectstart="return false;" hidefocus="true">
+        <a href="{{media_info.url|get_photo_url(uin, album_info['name'], album_info['id'])}}" target="_blank">
+          {% if media_info.type == "video" %}
+          <video id="js-img-disp" loop="loop" autoplay="autoplay" controls="controls" src="{{media_info.url|get_photo_url(uin, album_info['name'], album_info['id'])}}"
+          style="position: absolute; opacity: 1; top: 50%; left: 50%; transform: translate(-50%, -50%); width:auto;height:auto;max-width: 100%;max-height: 100%;">
+          {% else %}
+          <img id="js-img-disp" src="{{media_info.url|get_photo_url(uin, album_info['name'], album_info['id'])}}"
+            style="position: absolute; opacity: 0; width:auto; height:auto; max-width: 100%;max-height: 100%;"
+            onload="onImageLoad();">
+          {% endif %}
+        </a>
+      </div>
+      <a id="js-btn-prevPhoto" href="javascript:void(0);" class="js-btn-changePhoto figure-area-arrow arrow-pre"
+        onclick="showPhotoLayer({{photo_index-1}},{{photo_number}});"
+        onmouseover="this.className=this.className+' arrow-pre-hover';mouseOver('js-btn-prevPhoto','js-btn-nextPhoto');"
+        onmouseout="this.className=this.className.replace(' arrow-pre-hover', '');mouseOut('js-btn-prevPhoto','js-btn-nextPhoto');"
+        style="top: 45%; display: none; opacity: 1;">
+        上一张
+      </a>
+      <a id="js-btn-nextPhoto" href="javascript:;" class="js-btn-changePhoto figure-area-arrow arrow-next"
+        onclick="showPhotoLayer({{photo_index+1}},{{photo_number}});"
+        onmouseover="this.className=this.className+' arrow-next-hover';mouseOver('js-btn-prevPhoto','js-btn-nextPhoto');"
+        onmouseout="this.className=this.className.replace(' arrow-next-hover', '');mouseOut('js-btn-prevPhoto','js-btn-nextPhoto');"
+        style="top: 45%; display: none; opacity: 1;">
+        下一张
+      </a>
+    </div>
+    <!--图片右侧详情区S-->
+    <div class="figure-side" id="js-sidebar-ctn" style="padding-bottom: 30px; width:300px;">
+      <div class="figure-side-wrap figure-side-scroll">
+        <div class="figure-side-bg js-slideview-scrollbox js-scrollbox" id="js-cmt-wrap">
+
+          <div class="js-scrollbar" style="display: none;">
+            <a class="js-scrolling" style="height: 248px; margin-top: 0px; top: 0px; display: block;"
+              href="javascript:void(0)">
+              <span class="js-scrolling-inner" style=""></span>
+            </a>
+          </div>
+          <div class="figure-side-inner js-scrollcont" id="js-viewer-scrollcont">
+            <!--照片所属信息区S-->
+            <div class="figure-side-hd">
+              <div class="js-userinfo-ctn">
+                <div class="clear user" id="_slideView_userinfo" style="height:40px">
+                  <p class="user-img">
+                    {{avatar(uin, 50, 40)}}
+                  </p>
+                  <div class="user-photo-details">
+                    <p class="c_tx3">
+                      <a class="js-report-click" data-tag="nickname"
+                        href="/{{uin}}">{{photo["ownerName"]|content_beautify|safe}}</a>的
+                      <span id="js-photo-name" title="{{photo['name']}}"
+                        style="cursor: pointer;">{{photo["name"]}}</span>
+                    </p>
+                    <div class="photo-base-info">
+                      <p class="c_tx3">{{photo["uploadTime"]}}
+                      </p>
+                      <div class="mod-exif-info">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="figure_description c_tx2" id="js-description"
+                  style="overflow: hidden; cursor: pointer;"
+                  title="{{photo['desc']|content_beautify|safe}}">
+                  <div id="js-description-inner">{{photo["desc"]|content_beautify|safe}}</div>
+                </div>
+              </div>
+            </div>
+            <div class="figure-interactive">
+              <div class="handle_main js_show_comment" id="js-comment-ctn" style="visibility: visible;">
+                <div class="js_mod_comment_module" id="js-comment-module">
+                  <div class="mod_comment mod_comment_auto_open">
+                    <div class="mod_comments">
+                      <div class="comments_list">
+                        <ul>
+                          {% with comments = photo["lloc"]|matched_comments(photo_comments) %}
+                          {% for comment in comments %}
+                          <li class="comments_item bor3">
+                            <div class="comments_item_bd">
+                              <div>
+                                <div class="ui_avatar">
+                                  {{avatar(comment["poster"]["id"], 50, 30)}}
+                                </div>
+                                <div class="comments_content">
+                                  <span class="comments-content-publish">
+                                    {{nickname(comment["uin"], comment["poster"]["name"])}}: <span
+                                      class="comments-content-deatil">{{comment["content"]|content_beautify|safe}}</span>
+                                    <div class="cmt-figure">
+                                      {{generate_photo_comment_media_list(comment, uin, album_info, download_if_not_exist, 60)}}
+                                    </div>
+                                    {{comment_op(comment["postTime"])}}
+                                  </span>
+                                </div>
+                              </div>
+                              <div class="mod_comments_sub">
+                                <ol>
+                                  {% for reply in comment["replies"] %}
+                                  <li class="comments_item bor3">
+                                    <div class="comments_item_bd">
+                                      {{comments_content(reply)}}
+                                    </div>
+                                  </li>
+                                  {% endfor %}
+                                </ol>
+                              </div>
+                            </div>
+                          </li>
+                          {% endfor %}
+                        </ul>
+                        {% endwith %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!--图片右侧详情区e-->
+  </div>
+</div>
+{% endwith %}

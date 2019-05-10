@@ -1,0 +1,76 @@
+{% extends "index_base.html" %}
+{% block stylesheet %}
+<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/app-35.css')}}" />
+<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/photo.css')}}" />
+{% endblock %}
+{% block content %}
+<div class="bg0 mod-wrap" id="js-container" style="padding: 0px 53px;">
+  <div class="mod-wrap-inner">
+    <div class="mod-wrap-hd" id="js-nav-container">
+      <div class="bor mod-tab">
+        <div class="mod-tab-list">
+          <ul>
+            <li data-mod="albumlist" class="js-nav-tab">
+              <a href="javascript:;" class="c-tx2 js-select selected">
+                <span class="item-wrap bor-tx">相册<span class="item-num js-nav-tab-num"></span></span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="mod-wrap-bd" id="js-module-container" style="min-height:600px;">
+      <style>
+        .js-album-transition {
+          -webkit-transition: all 300ms ease-in-out;
+          -moz-transition: all 300ms ease-in-out;
+          -o-transition: all 300ms ease-in-out;
+          transition: all 300ms ease-in-out;
+        }
+      </style>
+      <div class="page-album">
+        <div id="js-album-container" style="position:relative">
+          <div id="js-album-list-noraml" class="album-list-wrap">
+            <div class="album-list js-album-list">
+              <div class="album-list-bd">
+                <ul class="js-album-list-ul" style="height:176px">
+                  {% for album_info in album_info_list %}
+                  <li>
+                    <div class="bg bor3 mod-album js-album-item js-album-transition"
+                      {{loop.index0|album_position_style|safe}}>
+                      <div class="album-bd js-album-item-imgBox" style="height:127px;">
+                        <a href="/{{uin}}/photo/{{album_info['name']|purge_file|purge_file}}"
+                          class="album-cover js-album-cover">
+                          <img class="js-cover-img" src="{{album_info['pre']|replace('/a/', '/m/')|get_photo_url(uin, album_info['name'], album_info['id'], download_if_not_exist)}}"
+                            onload="adjustImg(this, 137, 127)">
+                          <span class="pic-num-wrap">
+                            <span class="pic-num">{{album_info["total"]}}</span>
+                          </span>
+                        </a>
+                      </div>
+                      <div class="album-ft">
+                        <div class="album-desc  album-has-limit">
+                          <div class="album-desc-side js-album-setLimit" data-hottag="list.icon_setpriv">
+                            <i class="icon-m {{priv_map[album_info['priv']]['class']}}"
+                              title="{{priv_map[album_info['priv']]['title']}}"></i>
+                          </div>
+                          <div class="album-tit">
+                            <a href="/{{uin}}/photo/{{album_info['name']|purge_file|purge_file}}"
+                              class="c-tx2 js-album-desc-a"
+                              title="{{album_info['name']|safe}}">{{album_info["name"]|safe}}</a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,215 @@
+{% extends "index_base.html" %}
+{% from "pagelist.html" import blog_pagelist %}
+{% from "tools.html" import avatar %}
+{% block stylesheet %}
+<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/blog_app.css')}}" />
+{% endblock %}
+{% block content %}
+<div class="bg_mode bg">
+  <div class="box_ml bor">
+    <div class="mode_gb">
+      <div class="mode_gb_title bg2">
+        <div class="bg_mode_gb_title">
+          <h3>日志</h3>
+        </div>
+        <div class="mode_gb_other">
+          <p>
+            <a id="returnListArea" href="/{{uin}}/blog" rel="returnBlogList" class="c_tx" title="返回日志列表">返回日志列表</a>
+          </p>
+        </div>
+      </div>
+      <div class="mode_gb_cont">
+        <div class="blog_app" id="app_mod">
+          <div class="blog_header">
+            <div class="blog_title">
+              <div id="title" class="blog_tit_cont clearfix">
+                <strong>
+                  <span>
+                    <span class="blog_tit_detail" tabindex="1">
+                      {{blog_info.title|safe}}
+                    </span>
+                  </span>
+                </strong>
+                <span class="tit_other_info" style="display:inline;">
+                  <span id="pubTime" class="c_tx3">{{blog_info.blog_id|format_datetime}}</span>
+                  <span id="readNum" class="c_tx3">阅读({{blog_info.read_num}})</span>
+                </span>
+              </div>
+            </div>
+            <div class="operate_toolbar">
+              <div class="mod_interactive">
+                <ul id="upperInteractive">
+                  <li id="upperReplyInfoArea">
+                    <a id="upperReplyInfoAreaBtn" class="c_tx rbor3">
+                      <span class="icon icon_comment"></span>
+                      <span class="adjust">评论({{blog_info.comment_num}})</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div id="topHintArea"></div>
+          <div class="blog_cont">
+            <div class="blog_cont_details" id="veryContent" style="height:auto!important">
+              <table cellspacing="0" cellpadding="0" id="blogContentTable"
+                style="table-layout:fixed;width:100%;position:relative">
+                <tbody>
+                  <tr>
+                    <td valign="top" style="word-wrap:break-word">
+                      <div id="blogContainer" style="position:relative; overflow:hidden; height:100%;">
+                        <img id="paperPicArea0" style="height:0px" class="none" src="/ac/b.gif">
+                        <div id="paperTitleArea" align="center" class="">
+                          <span id="paperTitle" style="display:block;word-break:break-all">
+                          </span>
+                        </div>
+                        <img id="paperPicArea" style="height:0px" class="none" src="/ac/b.gif">
+                        {{blog_content_div|safe}}
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div id="paperBottom" class="clear"></div>
+            </div>
+            <div id="attachList" class="attachment_list bgr2 none"></div>
+          </div>
+          <div class="blog_footer">
+            <div class="operate_toolbar">
+              <div class="mod_interactive">
+                <ul id="upperInteractive">
+                  <li id="upperReplyInfoArea">
+                    <a id="upperReplyInfoAreaBtn" class="c_tx rbor3">
+                      <span class="icon icon_comment"></span>
+                      <span class="adjust">评论({{blog_info.comment_num}})</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="mod_tags c_tx3">
+              <span id="categorySpan" class="">
+                <a href="/{{uin}}/blog/{{blog_info.category|purge_file|purge_file}}"
+                  class="c_tx3">{{blog_info.category|safe}}</a>
+              </span>
+            </div>
+            <div id="mentionDiv" class="mod_links c_tx3 none"></div>
+            <div class="mod_signature" style="display: none;">
+              <div class="tit">
+                <h4>签名档</h4>
+              </div>
+              <div class="bor3 cont" id="signatureDIV"></div>
+            </div>
+            <div id="commentListContainer">
+              <div class="blog_comment ">
+                <div class="mod_tab">
+                  <div class="mode_menu_tag2">
+                    <ul>
+                      <li class="nowtag">
+                        <a id="commentCnt">评论({{blog_info.comment_num}})</a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                {% if blog_info.comment_num > 0 %}
+                <div id="commentDiv">
+                  <ol id="commentListDiv">
+                    {% for comment in comments %}
+                    <li id="singleCommentDiv1">
+                      <div name="commentItemDiv" class="comment_wrap bbor3 ">
+                        <div class="user_info">
+                          {{avatar(comment["poster"]["id"], 100, 100)}}
+                          <p class="username"><span class="">
+                              <a href="/{{comment['poster']['id']}}" title="{{comment['poster']['id']}}"
+                                class="c_tx q_namecard">{{comment['poster']['name']|content_beautify|safe}}</a>
+                            </span>
+                          </p>
+                          <p class="flower_info" id="flowerDiv1"></p>
+                        </div>
+                        <div class="comment_info">
+                          <div class="tit">
+                            <span class="floor">{{loop.index0|calc_floor(current_page, sum_page)}}楼<span class="icon icon_angle_love none"
+                                title="天使之爱"></span></span>
+                            <span class=" username ">
+                              <a href="/{{comment['poster']['id']}}" title="{{comment['poster']['id']}}"
+                                class="c_tx q_namecard">{{comment['poster']['name']|content_beautify|safe}}</a>
+                            </span>
+                            <span class="c_tx3 time">评论时间: {{comment["postTime"]|format_datetime}}</span>
+                          </div>
+                          <table style="width:100%">
+                            <tbody>
+                              <tr>
+                                <td style="font-size:14px">{{comment["content"]|content_beautify|safe}}</td>
+                              </tr>
+                              {% if ((comment["effect"]/1024)|int) is odd %}
+                              <tr>
+                                <td>
+                                  <br><br>-----------------------------------<br>该评论来自<span class="hl">手机Qzone</span>
+                                </td>
+                              </tr>
+                              {% endif %}
+                            </tbody>
+                          </table>
+                          <div class="mod_comment" style="width:400px; font-size:14px;">
+                            <div class="mod_comments" style="min-width:400px;">
+                              <div class="comments_list">
+                                <ul>
+                                  {% for reply in comment["replies"] %}
+                                  {% set reply_uin = reply["poster"]["id"] %}
+                                  {% set info = reply["content"]|extract_info %}
+                                  <li class="comments_item bor3">
+                                    <div class="comments_item_bd">
+                                      <div class="ui_avatar">
+                                        {{avatar(reply_uin, 50, 35)}}
+                                      </div>
+                                      <div class="comments_content">
+                                        {% if reply_uin == uin %}
+                                        <a href="/{{reply_uin}}" class="nickname">我</a>
+                                        {% else %}
+                                        <a href="/{{reply_uin}}"
+                                          class="nickname">{{reply["poster"]["name"]|content_beautify|safe}}</a>
+                                        {% endif %}
+                                        :
+                                        {% if info['uin'] | length > 0 %}
+                                        <a class="nickname"
+                                          href="/{{info['uin']}}">@{{info["nick"]|content_beautify|safe}}</a>
+                                        {% endif %}{{info["content"]|content_beautify|safe}}
+                                        <div class="comments_op">
+                                          <span class="c_tx3 ui_mr10">{{reply["postTime"]|format_datetime}}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </li>
+                                  {% endfor %}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="tbor3 c_tx3 signature none" id="signatureDIV1"></div>
+                        </div>
+                      </div>
+                    </li>
+                    {% endfor %}
+                  </ol>
+                  <div class="page_wrap">
+                    <div class="pagenav" id="commentPageIndexArea">
+                      {{blog_pagelist(current_page, total_page, "pageIndex_input4")}}
+                    </div>
+                  </div>
+                  <div id="broadCastArea" style="display:none;">
+                    <div class="interact_wrap" id="broadcastListDiv"></div>
+                    <div class="page_wrap">
+                      <div class="pagenav" id="broadCastPagination"></div>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% from "pagelist.html" import album_comment_pagelist %}
+{% from "tools.html" import avatar %}
+{% from "tools.html" import nickname %}
+{% from "tools.html" import comments_content %}
+{% from "tools.html" import comment_op %}
+{% from "tools.html" import generate_photo_comment_media_list %}
+<div
+  style="background-color: rgb(0, 0, 0); opacity: 0.2; position: fixed; left: 0px; top: 0px; width: 100%; height: 100%;"
+  class="qz_mask">
+</div>
+<div class="qz_dialog_layer" style="width:100%; height:100%;">
+  <div id="dialog_main_2" class="qz_dialog_layer_main" style="width:100%; height:100%;">
+    <div class="qz_dialog_custom custom_left" style="cursor: move;"></div>
+    <div class="qz_dialog_custom custom_top" style="cursor: move;"></div>
+    <div id="dialog_head_2" class="qz_dialog_layer_title" style="cursor: move;">
+      <h3 id="dialog_title_2">评论</h3>
+      <button id="dialog_button_2" title="关闭" class="qz_dialog_btn_close" onclick="hideElement('qz_dialog_layer');">
+        <span class="none">╳</span>
+      </button>
+    </div>
+    <div id="dialog_content_2" class="qz_dialog_layer_cont" style="width:auto;overflow:auto;">
+      <div class="qz_dialog_layer1 j-comment-loaded">
+        <div class="mod_comment mod_comment_auto_open">
+          <div class="mod_comments">
+            <div class="comments_list">
+              <ul>
+                {% for comment in photo_comments %}
+                <li class="comments_item bor3">
+                  <div class="comments_item_bd">
+                    <div>
+                      <div class="ui_avatar">
+                        {{avatar(comment["poster"]["id"], 50, 30)}}
+                      </div>
+                      <div class="comments_content">
+                        {{nickname(comment["poster"]["id"], comment["poster"]["name"])}}: 
+                        {% if "targetImage" in comment and comment["targetImage"] -%}
+                        {% with u = comment["targetImage"]["url"] %}
+                        <img src="{{u}}" style="display:block;" onload="adjustImg(this, 100, 100);this.style.margin='10px 0px';">
+                        {% endwith %}
+                        {%- endif %}
+                        <span>{{comment["content"]|content_beautify|safe}}</span>
+                        <div class="cmt-figure">
+                          {{generate_photo_comment_media_list(comment, uin, album_info, download_if_not_exist, 80)}}
+                        </div>
+                        {{comment_op(comment["postTime"])}}
+                      </div>
+                    </div>
+                    <div class="mod_comments_sub">
+                      <ol>
+                        {% for reply in comment["replies"] %}
+                        <li class="comments_item bor3">
+                          <div class="comments_item_bd">
+                            <div class="ui_avatar">
+                              {{avatar(reply["poster"]["id"], 50, 30)}}
+                            </div>
+                            {{comments_content(reply)}}
+                          </div>
+                        </li>
+                        {% endfor %}
+                      </ol>
+                    </div>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+            {{album_comment_pagelist(current_page, total_page)}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,102 +1,112 @@
 import logging
 import math
 import os
-from contextlib import closing
-from threading import Lock
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock, Thread
 
 import requests
 
-import config
-from tools import logging_wrap, purge_file_name
+from tools import get_max_worker, logging_wrap, purge_file_name
 
-_lock = Lock()
+thread_pool_executor = ThreadPoolExecutor(get_max_worker())
+directory_lock = Lock()
+dict_lock = Lock()
+_locks = {}
+
+
+def update_downloaded_file(url, *args, **kwargs):
+    if len(url) == 0:
+        return
+    downloaded_file = kwargs.get("downloaded_file", None)
+    if not downloaded_file:
+        return
+    lock = None
+    with dict_lock:
+        lock = _locks.setdefault(downloaded_file, Lock())
+    with lock:
+        with open(downloaded_file, "a", encoding="utf-8") as fout:
+            fout.write("%s\n" % url)
+
+
+def update_downloaded_file_with_check(url, *args, **kwargs):
+    if len(url) == 0:
+        return
+    downloaded_file = kwargs.get("downloaded_file", None)
+    if not downloaded_file:
+        return
+    lock = None
+    with dict_lock:
+        lock = _locks.setdefault(downloaded_file, Lock())
+    with lock:
+        with open(downloaded_file, "a+", encoding="utf-8") as fupdate:
+            fupdate.seek(0)
+            done_urls = fupdate.read()
+            if done_urls.find(url) < 0:
+                fupdate.write("%s\n" % url)
+                fupdate.flush()
 
 
 @logging_wrap
-def download_media(url, dir, file_name):
+def download_media(url, directory, filename, has_extension=False, *args, **kwargs):
     result = False
-    s = "\rdownloading %s -> %05.2f%% "
-    chunk_size = 1024
-    with requests.get(url, stream=True, timeout=30) as r:
-        extension = "jpg"
-        if "content-type" in r.headers:
-            content_type = r.headers["content-type"]
-            extension = content_type[content_type.find("/") + 1:]
-        total_len = math.inf
-        if "content-length" in r.headers:
-            total_len = int(r.headers["content-length"])
-        current_len = 0
-        file_name = purge_file_name(file_name)
-        with _lock:
-            if not os.path.exists(dir):
-                os.makedirs(dir)
-        file_name = os.path.join(dir, "%s.%s" % (file_name, extension))
-        with open(file_name, "wb") as f:
-            for data in r.iter_content(chunk_size):
-                f.write(data)
-                current_len += len(data)
-                percent = 100 * current_len / total_len
-                print(s % (url, percent), end="")
-        result = True
-        print("\n%s is downloaded" % url)
+    s = "\rdownloading " + url + " -> %05.2f%% "
+    chunk_size = 1024 << 4
+    with directory_lock:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+    lock = None
+    with dict_lock:
+        lock = _locks.setdefault(url, Lock())
+    with lock:
+        with requests.get(url, stream=True) as r:
+            total_len = math.inf
+            if "content-length" in r.headers:
+                total_len = int(r.headers["content-length"])
+            current_len = 0
+            filename = purge_file_name(filename)
+            if not has_extension:
+                extension = "jpg"
+                if "content-type" in r.headers:
+                    content_type = r.headers["content-type"]
+                    extension = content_type[content_type.find("/") + 1:]
+                filename = "%s.%s" % (filename, extension)
+            filename = os.path.join(directory, filename)
+            if not os.path.exists(filename):
+                with open(filename, "wb") as f:
+                    for data in r.iter_content(chunk_size):
+                        f.write(data)
+                        current_len += len(data)
+                        percent = 100 * current_len / total_len
+                        print(s % (percent), end="")
+                result = True
+                print("\n%s is downloaded" % url)
     return result
 
 
-@logging_wrap
-def export_content_media_url(media, media_type, dir):
-    media_id = "%s_id" % media_type
-    if media_id not in media:
-        logging.warning("%s not found in %s" % (media_id, str(media)))
-        return
+class DownloadThread(Thread):
+    def __init__(self, url, directory, filename, record_downloaded, *args, **kwargs):
+        super().__init__()
+        self._url = url
+        self._directory = directory
+        self._filename = filename
+        self._after_download_function = record_downloaded
+        self._args = args
+        self._kwargs = kwargs
 
-    media_url = None
-    for url_key in config.CONTENT_URL_KEY:
-        if url_key in media and len(media[url_key]) > 0:
-            media_url = media[url_key]
-            break
-
-    if not media_url:
-        logging.warning("media url not found in %s" % str(media))
-        return
-
-    url_file = os.path.join(dir, config.TO_DOWNLOAD_FILE)
-    download_dir = os.path.join(dir, config.DOWNLOAD_PATH)
-    with _lock:
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-        with open(url_file, "a", encoding="utf-8") as f:
-            f.write("%s\t%s\t%s\n" %
-                    (media_url, download_dir, media[media_id]))
-
-
-@logging_wrap
-def export_comment_media_url(comment, dir):
-    for media_type in config.MEDIA_TYPE:
-        if media_type not in comment:
-            continue
-        medias = comment[media_type]
-        for media in medias:
-            media_url = None
-            for url_key in config.COMMENT_URL_KEY:
-                if url_key in media and len(media[url_key]) > 0:
-                    media_url = media[url_key]
-                    break
-            if not media_url:
-                s = ("media url not found in %s" % str(media))
-                logging.warning(s)
-                return
-
-            url_file = os.path.join(dir, config.TO_DOWNLOAD_FILE)
-            download_dir = os.path.join(dir, config.DOWNLOAD_PATH)
-            with open(url_file, "a", encoding="utf-8") as f:
-                f.write("%s\t%s\t%s\n" % (media_url, download_dir, media_url))
+    def run(self):
+        future = thread_pool_executor.submit(
+            download_media, self._url, self._directory, self._filename, *self._args, **self._kwargs)
+        if future.result():
+            self._after_download_function(
+                url=self._url, *self._args, **self._kwargs)
 
 
 class Downloader(object):
-    def __init__(self, input_urls_file, output_urls_file, dir):
-        self._dir = dir
-        self._input_file = os.path.join(dir, input_urls_file)
-        self._output_file = os.path.join(dir, output_urls_file)
+    def __init__(self, input_urls_file, output_urls_file, directory):
+        self._dir = directory
+        self._input_file = os.path.join(directory, input_urls_file)
+        self._output_file = os.path.join(directory, output_urls_file)
+        self._thread_pool_executor = ThreadPoolExecutor(get_max_worker())
 
     @logging_wrap
     def download(self):
@@ -105,20 +115,26 @@ class Downloader(object):
             return
 
         print("start downloading")
-        with open(self._output_file, "a+", encoding="utf-8") as fupdate:
-            with open(self._input_file, "r", encoding="utf-8") as fin:
-                fupdate.seek(0)
-                done_urls = fupdate.read()
+        downloaded_urls = ""
+        if os.path.exists(self._output_file):
+            with open(self._output_file, "r", encoding="utf-8") as fin:
+                downloaded_urls = fin.read()
+        threads = []
+        with open(self._input_file, "r", encoding="utf-8") as fin:
+            for line in fin:
+                temp = line.split()
+                url = temp[0]
+                if downloaded_urls.find(url) >= 0:
+                    continue
 
-                for line in fin:
-                    temp = line.split()
-                    url = temp[0]
-                    if done_urls.find(url) >= 0:
-                        continue
-
-                    download_dir = temp[1]
-                    id = temp[2]
-                    if download_media(url, download_dir, id):
-                        fupdate.write("%s\n" % url)
-                        fupdate.flush()
+                download_dir = temp[1]
+                filename = temp[2]
+                download_thread = DownloadThread(url, download_dir, filename,
+                                                 update_downloaded_file_with_check,
+                                                 has_extension=False,
+                                                 downloaded_file=self._output_file)
+                download_thread.start()
+                threads.append(download_thread)
+        for t in threads:
+            t.join()
         print("downloading done")
