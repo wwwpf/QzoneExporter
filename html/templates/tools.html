@@ -11,7 +11,7 @@
 <a href="{{media.url}}" target="_blank">
   {% if media.type == "video" %}
     <video src="{{media.url}}" controls="controls" loop="loop" 
-    autoplay="autoplay" style="width:auto; height:auto; max-width: 100%; max-height: 100%;"></video>
+    style="width:auto; height:auto; max-width: 100%; max-height: 100%;"></video>
   {% else %}
     {% if w > 0 and h > 0 %}
       <img src="{{media.url}}" onload="adjustImg(this, {{w}}, {{h}})">

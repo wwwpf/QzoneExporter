@@ -1,6 +1,5 @@
 import argparse
 import os
-import sys
 from zipfile import ZipFile
 
 from flask import Flask, g, redirect, render_template, url_for

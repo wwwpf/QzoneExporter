@@ -11,7 +11,7 @@
       {% for media in media_list %}
       <a href="{{media.url}}" target="_blank">
         {% if media.type == "video" %}
-        <video src="{{media.url}}" controls="controls" controls="controls" loop="loop" autoplay="autoplay"
+        <video src="{{media.url}}" controls="controls" loop="loop"
           onload="adjustImg(this, {{w}}, {{h}}, 1, {{(l==1)|int}})"></video>
         {% else %}
         <img src="{{media.url}}" onload="adjustImg(this, {{w}}, {{h}}, 1, {{(l==1)|int}})">
