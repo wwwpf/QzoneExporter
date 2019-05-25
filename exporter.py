@@ -200,9 +200,15 @@ class QzoneExporter(object):
                     single_blog_url, params=single_blog_payload)
 
                 read = 0
-                new_data = statistical_json_data["data"][0]["current"]["newdata"]
-                if new_data and len(new_data) > 0:
-                    read = new_data["RZRD"]
+                try:
+                    new_data = statistical_json_data["data"][0]["current"]["newdata"]
+                    if new_data and len(new_data) > 0:
+                        read = new_data["RZRD"]
+                except Exception as e:
+                    print("get read num error")
+                    print(e)
+                    logging.exception(blog_info)
+                    logging.exception(e)
 
                 single_blog = BlogParser(
                     self._directory, blog_info, temp.text, read)
@@ -715,7 +721,14 @@ class QzoneExporter(object):
         }
         r = self._account_info.get_url(like_count_url, params=payload)
         unikey_json_data = get_json_data_from_response(r.text)
-        like_count = unikey_json_data["data"][0]["current"]["likedata"]["cnt"]
+        try:
+            like_count = unikey_json_data["data"][0]["current"]["likedata"]["cnt"]
+        except Exception as e:
+            print(e)
+            logging.exception("unikey: %s" % unikey)
+            logging.exception(unikey_json_data)
+            logging.exception(e)
+            like_count = 0
 
         json_data[unikey] = {}
         json_data[unikey][QzoneExporter.LIKE_COUNT_KEY] = unikey_json_data
