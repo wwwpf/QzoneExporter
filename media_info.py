@@ -86,18 +86,13 @@ def extract_media_info(json_data):
                     break
             else:
                 media_id_key = "%s_id" % media_type
-                if media_id_key not in media:
-                    if media_type == QzoneType.PICTURE\
-                            and "is_video" in media and media["is_video"] == 1\
-                            and "video_info" in media and media["video_info"]:
-                        # 说说正文中同时存在视频与图片
-                        media_backup = media
-                        media = media["video_info"]
-                        media_id_key = "video_id"
-                    else:
-                        logging.warning("%s not found in %s" %
-                                        (media_id, str(media)))
-                        continue
+                if media_type == QzoneType.PICTURE\
+                        and "is_video" in media and media["is_video"] == 1\
+                        and "video_info" in media and media["video_info"]:
+                    # 说说正文中同时存在视频与图片
+                    media_backup = media
+                    media = media["video_info"]
+                    media_id_key = "video_id"
                 for url_key in QzoneKey.CONTENT_URL:
                     if url_key in media and len(media[url_key]) > 0:
                         media_url = media[url_key]
