@@ -46,13 +46,13 @@ def write_media_info(media_info_list, directory, filename):
 def extract_media_info_from_photo(photo, id_key):
     url = ""
     is_video = False
-    if photo["is_video"]:
+    if "is_video" in photo and photo["is_video"]:
         url = photo["video_info"]["video_url"]
         is_video = True
     else:
         if "raw_upload" in photo and photo["raw_upload"] == 1:
             url = photo["raw"]
-        elif "origin" in photo:
+        elif "origin" in photo and photo["origin"]:
             url = photo["origin"]
     if len(url) == 0:
         url = photo["url"]
@@ -70,6 +70,21 @@ def extract_media_info(json_data):
     '''
 
     media_info_list = []
+    if QzoneKey.OPTION_DATA in json_data \
+            and QzoneKey.SHUOSHUO_FLOATVIEW in json_data[QzoneKey.OPTION_DATA]:
+        try:
+            floatview_data = json_data[QzoneKey.OPTION_DATA][QzoneKey.SHUOSHUO_FLOATVIEW]["data"]
+            photo_data = floatview_data["photos"]
+            for photo in photo_data:
+                media_info = extract_media_info_from_photo(photo, "picKey")
+                media_info_list.append(media_info)
+            return media_info_list
+        except Exception as e:
+            print(e)
+            print(json_data)
+            logging.warning(e)
+            logging.warning(str(json_data))
+
     video_thumbnail_url = ""
     for media_type in MEDIA_TYPE:
         if not (media_type in json_data and json_data[media_type]):

@@ -558,7 +558,7 @@ class QzoneExporter(object):
             "outCharset": "utf-8",
             "appid": "4",
             "isFirst": "1",
-            "picKey": "unknow",
+            "picKey": "unknown",
             "postNum": "0"                  # 获取后续照片数量
         }
 

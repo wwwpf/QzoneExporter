@@ -409,7 +409,7 @@ def shuoshuo_media_size(n):
 def shuoshuo_media_class(n):
     '''说说的图片数为 n 时，img 标签所使用的 class
     '''
-    return CLASS_MAP[n]
+    return CLASS_MAP[min(n, 9)]
 
 
 def matched_comments(photo_id, comments):

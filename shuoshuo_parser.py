@@ -2,7 +2,7 @@ import logging
 import math
 import os
 
-from config import QzoneFileName, QzonePath
+from config import QzoneFileName, QzoneKey, QzonePath, QzoneType
 from download import Downloader
 from media_info import export_media_url
 from saver import Saver
@@ -57,6 +57,30 @@ class ShuoShuoParser(Saver):
         return result
 
     @logging_wrap
+    def _parse_all_picture(self, msg):
+        floatview_photo_list = "https://h5.qzone.qq.com/proxy/domain/photo.qzone.qq.com/fcgi-bin/cgi_floatview_photo_list_v2"
+        floatview_photo_payload = {
+            "g_tk": self._account_info.g_tk,
+            "topicId": "%s_%s_1" % (self._account_info.target_uin, msg["tid"]),
+            "hostUin": self._account_info.target_uin,
+            "uin": self._account_info.self_uin,
+            "fupdate": "1",
+            "plat": "qzone",
+            "source": "qzone",
+            "cmtNum": "99",
+            "need_private_comment": "1",
+            "inCharset": "utf-8",
+            "outCharset": "utf-8",
+            "appid": "311",
+            "isFirst": "1",
+            "picKey": "%s,%s" % (msg["tid"], msg[QzoneType.PICTURE][0][QzoneKey.CONTENT_URL[0]])
+        }
+        r = self._account_info.get_url(
+            floatview_photo_list, params=floatview_photo_payload)
+        floatview_json_data = get_json_data_from_response(r.text)
+        return floatview_json_data
+
+    @logging_wrap
     def export(self, need_download_media=False):
         '''默认下载非登录id发表的资源
         '''
@@ -66,7 +90,8 @@ class ShuoShuoParser(Saver):
             tid_file = os.path.join(
                 self.directory_path, QzoneFileName.SHUOSHUO_TID)
             with open(tid_file, "a", encoding="utf-8") as f:
-                for i in range(0, len(msglist)):
+                msglist_len = len(msglist)
+                for i in range(msglist_len):
                     msg = msglist[i]
                     print("%05d\t" % ShuoShuoParser._shuoshuo_count,
                           "process shuoshuo, tid:", msg["tid"])
@@ -86,6 +111,17 @@ class ShuoShuoParser(Saver):
                             if comment["uin"] != self._account_info.self_uin \
                                     or need_download_media:
                                 export_media_url(comment, self.directory_path)
+
+                    # 说说图片大于 9 张
+                    if QzoneType.PICTURE in msg and msg[QzoneType.PICTURE]\
+                            and QzoneKey.PIC_TOTAL in msg and msg[QzoneKey.PIC_TOTAL]\
+                            and len(msg[QzoneType.PICTURE]) == 9\
+                            and msg[QzoneKey.PIC_TOTAL] > 9:
+                        floatview_data = self._parse_all_picture(msg)
+                        msglist[i][QzoneKey.OPTION_DATA] = {}
+                        msglist[i][QzoneKey.OPTION_DATA][QzoneKey.SHUOSHUO_FLOATVIEW] =\
+                            self._parse_all_picture(msg)
+                        msg = msglist[i]
 
                     if self._account_info.target_uin != self._account_info.self_uin \
                             or need_download_media:

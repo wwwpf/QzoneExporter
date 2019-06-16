@@ -53,6 +53,10 @@ class QzoneKey(object):
     COMMENT_URL = ["o_url", "b_url", "hd_url", "s_url"]
     CONTENT_URL = ["url2", "url3"]
 
+    PIC_TOTAL = "pictotal"
+    OPTION_DATA = "QzoneExporter"
+    SHUOSHUO_FLOATVIEW = "shuoshuo_floatview"
+
 
 class QzoneType(object):
     VIDEO = "video"

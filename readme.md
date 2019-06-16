@@ -203,6 +203,10 @@ python displayer.py [--download]
   感谢这篇博客提供的思路。
 - [QQ空间](https://qzone.qq.com/) 网页显示本地数据时使用的样式与布局均来自于QQ空间。
 
+## LICENSE
+
+GPL-3.0，额外条件：禁止商用。
+
 ## 捐赠
 
 如果您认为该项目在一定程度上帮助了您，可以赞赏我:D
