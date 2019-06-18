@@ -19,7 +19,6 @@ optional arguments:
   --msgboard  导出留言板数据
   --photo     导出相册数据
   --shuoshuo  导出说说数据
-  --like       [deprecated]导出点赞数据，需要设置--photo或--shuoshuo
   --download  下载图片或视频至本地
   --all       导出所有数据
 ```
@@ -37,13 +36,13 @@ optional arguments:
 ## 输入
 
 - target_uin
-  需要导出数据的QQ号
+  需要导出数据的QQ号。
 - self_uin
-  用于登录空间的QQ号
+  用于登录空间的QQ号。
 - cookies_value
-  从浏览器登录QQ空间，按 `F12`，点击 `Network` 选项卡，点击QQ空间“我的主页“，点击 `XHR`，点击 `main_page_cgi` 请求，从 `Header` 中找出 `cookie`。如图所示：
+  从浏览器登录QQ空间，按 `F12`，点击 `Network` 选项卡，点击QQ空间“我的主页“，点击 `XHR`，点击 `main_page_cgi` 请求，从 `Header` 中找出 `cookie`，如图所示。
 - g_tk
-  可通过 cookies_value 中的 `p_skey` 计算，选填
+  可通过 cookies_value 中的 `p_skey` 计算，选填。
   ![获取g_tk及cookie](pic/1.png)
 
 登录QQ需要有访问目标QQ空间的权限。
@@ -150,7 +149,6 @@ cookies_value = "从浏览器获取"
 g_tk = "从浏览器获取"   # 可选，会尝试通过 cookies 计算
 q = QzoneExporter(self_uin, g_tk, cookies_value, args, target_uin)
 q.export()
-
 ```
 
 ### 示例
@@ -195,7 +193,7 @@ python displayer.py [--download]
 
 ## 更新记录
 
-- 2019.05.10 支持网页显示；使用多线程下载，去掉超时设置；去掉点赞数据的抓取；修补了文件名可能非法的错误
+- 2019.05.10 支持网页显示；使用多线程下载，去掉超时设置；去掉点赞数据的抓取；修复了文件名可能非法的问题。
 
 ## 参考
 

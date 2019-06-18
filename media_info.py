@@ -46,13 +46,13 @@ def write_media_info(media_info_list, directory, filename):
 def extract_media_info_from_photo(photo, id_key):
     url = ""
     is_video = False
-    if "is_video" in photo and photo["is_video"]:
+    if photo.get("is_video"):
         url = photo["video_info"]["video_url"]
         is_video = True
     else:
-        if "raw_upload" in photo and photo["raw_upload"] == 1:
+        if photo.get("raw_upload") == 1:
             url = photo["raw"]
-        elif "origin" in photo and photo["origin"]:
+        elif photo.get("origin"):
             url = photo["origin"]
     if len(url) == 0:
         url = photo["url"]
@@ -87,9 +87,9 @@ def extract_media_info(json_data):
 
     video_thumbnail_url = ""
     for media_type in MEDIA_TYPE:
-        if not (media_type in json_data and json_data[media_type]):
+        media_list = json_data.get(media_type)
+        if not media_list:
             continue
-        media_list = json_data[media_type]
         for media in media_list:
             media_url = ""
             media_id = ""
@@ -101,21 +101,21 @@ def extract_media_info(json_data):
                     break
             else:
                 media_id_key = "%s_id" % media_type
-                if media_type == QzoneType.PICTURE\
-                        and "is_video" in media and media["is_video"] == 1\
-                        and "video_info" in media and media["video_info"]:
+                temp_media = media.get("video_info")
+                if media_type == QzoneType.PICTURE and media.get("is_video", 0)\
+                        and temp_media:
                     # 说说正文中同时存在视频与图片
                     media_backup = media
-                    media = media["video_info"]
+                    media = temp_media
                     media_id_key = "video_id"
                 for url_key in QzoneKey.CONTENT_URL:
-                    if url_key in media and len(media[url_key]) > 0:
+                    if media.get(url_key) and len(media[url_key]) > 0:
                         media_url = media[url_key]
-                        media_id = media[media_id_key]
+                        media_id = media.get(media_id_key, media_url)
                         break
                 if media_backup:
                     for url_key in QzoneKey.CONTENT_URL:
-                        if url_key in media_backup and len(media_backup[url_key]) > 0:
+                        if media.get(url_key) and len(media_backup[url_key]) > 0:
                             video_thumbnail_url = media_backup[url_key]
                             break
             if len(media_url) == 0:
