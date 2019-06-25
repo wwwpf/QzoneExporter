@@ -134,7 +134,7 @@ target_uin/
 
 - requests
 - bs4
-- python3
+- Python ≥ 3.6
 - piexif（Exif 信息写回）
 - Flask（网页显示）
 
