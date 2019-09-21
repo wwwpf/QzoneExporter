@@ -81,6 +81,30 @@ class ShuoShuoParser(Saver):
         return floatview_json_data
 
     @logging_wrap
+    def _parse_full_content(self, msg):
+        msgdetail = "https://user.qzone.qq.com/proxy/domain/taotao.qq.com/cgi-bin/emotion_cgi_msgdetail_v6"
+        msgdetail_payload = {
+            "tid": msg["tid"],
+            "uin": self._account_info.self_uin,
+            "t1_source": "1",
+            "not_trunc_con": "1",
+            "hostuin": self._account_info.target_uin,
+            "code_version": "1",
+            "format": "json",
+            "qzreferrer": "https://user.qzone.qq.com/%s" % (self._account_info.target_uin),
+        }
+        msgdetail_params = {
+            "g_tk": self._account_info.g_tk
+        }
+
+        r = self._account_info.post_url(msgdetail,
+                                        params=msgdetail_params,
+                                        data=msgdetail_payload)
+        r_json = r.json()
+        msg["content"] = r_json["content"]
+        msg["conlist"] = r_json["conlist"]
+
+    @logging_wrap
     def export(self, need_download_media=False):
         '''默认下载非登录id发表的资源
         '''
@@ -122,6 +146,10 @@ class ShuoShuoParser(Saver):
                         msglist[i][QzoneKey.OPTION_DATA][QzoneKey.SHUOSHUO_FLOATVIEW] =\
                             self._parse_all_picture(msg)
                         msg = msglist[i]
+
+                    # 需要获取全文
+                    if msg.get("has_more_con"):
+                        self._parse_full_content(msg)
 
                     if self._account_info.target_uin != self._account_info.self_uin \
                             or need_download_media:
