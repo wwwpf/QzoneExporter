@@ -12,20 +12,26 @@ class PhotoExifRecover(object):
         self.is_dirty = False
 
     def copy_exif(self, exif_dict_key, exif_value_key, info, info_dict_key, info_value_key, tag=""):
-        if not exif_dict_key in self.exif_dict.keys() or not exif_value_key in self.exif_dict[exif_dict_key].keys() or not exif_value_key in self.exif_dict[exif_dict_key]:
-            if info_dict_key in info.keys() and info_value_key in info[info_dict_key].keys() and info[info_dict_key][info_value_key]:
-                if not exif_dict_key in self.exif_dict.keys():
+        if exif_dict_key not in self.exif_dict.keys() \
+                or exif_value_key not in self.exif_dict[exif_dict_key].keys() \
+                or exif_value_key not in self.exif_dict[exif_dict_key]:
+            if info_dict_key in info.keys() \
+                    and info_value_key in info[info_dict_key].keys() \
+                    and info[info_dict_key][info_value_key]:
+                if exif_dict_key not in self.exif_dict.keys():
                     self.exif_dict[exif_dict_key] = {}
                 corvered = self.covert(info[info_dict_key][info_value_key], tag)
                 self.exif_dict[exif_dict_key][exif_value_key] = corvered
                 self.is_dirty = True
-                print(exif_value_key," is recoveried from ", info_value_key, corvered)
+                print(exif_value_key, " is recoveried from ", info_value_key, corvered)
                 return True
 
-    def coyp_DateTimeOriginal_from_uploadtime(self): # if originalTime is missing
-        if not "Exif" in self.exif_dict.keys() or not piexif.ExifIFD.DateTimeOriginal in self.exif_dict["Exif"].keys() or not piexif.ExifIFD.DateTimeOriginal in self.exif_dict["Exif"]:
+    def coyp_DateTimeOriginal_from_uploadtime(self):  # if originalTime is missing
+        if "Exif" not in self.exif_dict.keys() \
+                or piexif.ExifIFD.DateTimeOriginal not in self.exif_dict["Exif"].keys() \
+                or piexif.ExifIFD.DateTimeOriginal not in self.exif_dict["Exif"]:
             if "uploadtime" in self.raw_info.keys() and self.raw_info["uploadtime"]:
-                if not "Exif" in self.exif_dict.keys():
+                if "Exif" not in self.exif_dict.keys():
                     self.exif_dict["Exif"] = {}
                 self.exif_dict["Exif"][piexif.ExifIFD.DateTimeOriginal] = self.raw_info["uploadtime"].replace("-", ":")
                 self.is_dirty = True
@@ -33,67 +39,86 @@ class PhotoExifRecover(object):
                 return True
 
     def add_exif(self, exif_dict_key, exif_value_key, value):
-        if not exif_dict_key in self.exif_dict.keys() or not exif_value_key in self.exif_dict[exif_dict_key].keys() or not exif_value_key in self.exif_dict[exif_dict_key]:
+        if exif_dict_key not in self.exif_dict.keys() \
+                or exif_value_key not in self.exif_dict[exif_dict_key].keys() \
+                or exif_value_key not in self.exif_dict[exif_dict_key]:
             if value:
-                if not exif_dict_key in self.exif_dict.keys():
+                if exif_dict_key not in self.exif_dict.keys():
                     self.exif_dict[exif_dict_key] = {}
                 self.exif_dict[exif_dict_key][exif_value_key] = value
                 self.is_dirty = True
                 print(exif_value_key, " is added as ", value)
                 return True
 
-    def covert(self, str: str, tag):
-        if str == "":
-            return str
+    def covert(self, s: str, tag):
+        if s == "":
+            return s
 
         elif tag == piexif.TYPES.Ascii:
-            return str
+            return s
         elif tag == piexif.TYPES.Rational or tag == piexif.TYPES.SRational:
-            if '/' in str:
-                (numerator, denominator) = str.split('/')
+            if '/' in s:
+                (numerator, denominator) = s.split('/')
                 return int(numerator), int(denominator)
             else:
-                return int(float(str) * 10000), 10000
+                return int(float(s) * 10000), 10000
         elif tag == piexif.TYPES.Short or tag == piexif.TYPES.Long:
-            return int(str)
+            return int(s)
 
         elif tag == "GPSPos":
-            decimal_degrees = float(str)
+            decimal_degrees = float(s)
             degrees = int(decimal_degrees)
             minutes = int(60 * (decimal_degrees - degrees))
             seconds = int(10000 * (3600 * (decimal_degrees - degrees) - 60 * minutes))
             return (degrees, 1), (minutes, 1), (seconds, 10000)
 
-        return str
+        return s
 
     def recover(self):
         print("recovering:", self.file_dir)
 
-        #0th#
-        self.copy_exif("0th", piexif.ImageIFD.Make, self.raw_info, "exif", "make", piexif.TYPES.Ascii)
-        self.copy_exif("0th", piexif.ImageIFD.Model, self.raw_info, "exif", "model", piexif.TYPES.Ascii)
+        # 0th #
+        self.copy_exif("0th", piexif.ImageIFD.Make,
+                       self.raw_info, "exif", "make", piexif.TYPES.Ascii)
+        self.copy_exif("0th", piexif.ImageIFD.Model,
+                       self.raw_info, "exif", "model", piexif.TYPES.Ascii)
 
-        #Exif#
-        self.copy_exif("Exif", piexif.ExifIFD.ExposureBiasValue, self.raw_info, "exif", "exposureCompensation", piexif.TYPES.SRational)
-        self.copy_exif("Exif", piexif.ExifIFD.ExposureMode, self.raw_info, "exif", "exposureMode", piexif.TYPES.Short)
-        self.copy_exif("Exif", piexif.ExifIFD.ExposureProgram, self.raw_info, "exif", "exposureProgram", piexif.TYPES.Short)
-        self.copy_exif("Exif", piexif.ExifIFD.ExposureTime, self.raw_info, "exif", "exposureTime", piexif.TYPES.SRational)
-        self.copy_exif("Exif", piexif.ExifIFD.Flash, self.raw_info, "exif", "flash", piexif.TYPES.Short)
-        self.copy_exif("Exif", piexif.ExifIFD.FNumber, self.raw_info, "exif", "fnumber", piexif.TYPES.Rational)
-        self.copy_exif("Exif", piexif.ExifIFD.FocalLength, self.raw_info, "exif", "focalLength", piexif.TYPES.Rational)
-        self.copy_exif("Exif", piexif.ExifIFD.ISOSpeed, self.raw_info, "exif", "iso", piexif.TYPES.Long)
-        self.copy_exif("Exif", piexif.ExifIFD.LensModel, self.raw_info, "exif", "lensModel", piexif.TYPES.Ascii)
-        self.copy_exif("Exif", piexif.ExifIFD.MeteringMode, self.raw_info, "exif", "meteringMode", piexif.TYPES.Short)
+        # Exif #
+        self.copy_exif("Exif", piexif.ExifIFD.ExposureBiasValue,
+                       self.raw_info, "exif", "exposureCompensation", piexif.TYPES.SRational)
+        self.copy_exif("Exif", piexif.ExifIFD.ExposureMode,
+                       self.raw_info, "exif", "exposureMode", piexif.TYPES.Short)
+        self.copy_exif("Exif", piexif.ExifIFD.ExposureProgram,
+                       self.raw_info, "exif", "exposureProgram", piexif.TYPES.Short)
+        self.copy_exif("Exif", piexif.ExifIFD.ExposureTime,
+                       self.raw_info, "exif", "exposureTime", piexif.TYPES.SRational)
+        self.copy_exif("Exif", piexif.ExifIFD.Flash,
+                       self.raw_info, "exif", "flash", piexif.TYPES.Short)
+        self.copy_exif("Exif", piexif.ExifIFD.FNumber,
+                       self.raw_info, "exif", "fnumber", piexif.TYPES.Rational)
+        self.copy_exif("Exif", piexif.ExifIFD.FocalLength,
+                       self.raw_info, "exif", "focalLength", piexif.TYPES.Rational)
+        self.copy_exif("Exif", piexif.ExifIFD.ISOSpeed,
+                       self.raw_info, "exif", "iso", piexif.TYPES.Long)
+        self.copy_exif("Exif", piexif.ExifIFD.LensModel,
+                       self.raw_info, "exif", "lensModel", piexif.TYPES.Ascii)
+        self.copy_exif("Exif", piexif.ExifIFD.MeteringMode,
+                       self.raw_info, "exif", "meteringMode", piexif.TYPES.Short)
 
-        #Exif: OriginalTime#
-        if not self.copy_exif("Exif", piexif.ExifIFD.DateTimeOriginal, self.raw_info, "exif", "originalTime", piexif.TYPES.Ascii):
-            self.coyp_DateTimeOriginal_from_uploadtime() # if originalTime is missing
+        # Exif: OriginalTime #
+        if not self.copy_exif("Exif", piexif.ExifIFD.DateTimeOriginal,
+                              self.raw_info, "exif", "originalTime", piexif.TYPES.Ascii):
+            self.coyp_DateTimeOriginal_from_uploadtime()  # if originalTime is missing
 
-        #GPS#
-        if self.copy_exif("GPS", piexif.GPSIFD.GPSLongitude, self.floatview_info, "shootGeo", "pos_x", "GPSPos"):
-            self.add_exif("GPS", piexif.GPSIFD.GPSLongitudeRef, "E") # 拍摄地点在东半球是参考东经的；在西半球如参考东经则经度是负数
-        if self.copy_exif("GPS", piexif.GPSIFD.GPSLatitude, self.floatview_info, "shootGeo", "pos_y", "GPSPos"):
-            self.add_exif("GPS", piexif.GPSIFD.GPSLatitudeRef, "N") # 拍摄地点在北半球是参考北纬的；在南半球如参考北纬则维度是负数
+        # GPS #
+        if self.copy_exif("GPS", piexif.GPSIFD.GPSLongitude,
+                          self.floatview_info, "shootGeo", "pos_x", "GPSPos"):
+            # 拍摄地点在东半球是参考东经的；在西半球如参考东经则经度是负数
+            self.add_exif("GPS", piexif.GPSIFD.GPSLongitudeRef, "E")
+        if self.copy_exif("GPS", piexif.GPSIFD.GPSLatitude,
+                          self.floatview_info, "shootGeo", "pos_y", "GPSPos"):
+            # 拍摄地点在北半球是参考北纬的；在南半球如参考北纬则维度是负数
+            self.add_exif("GPS", piexif.GPSIFD.GPSLatitudeRef, "N")
 
         if self.is_dirty:
             exif_bytes = piexif.dump(self.exif_dict)
@@ -103,6 +128,7 @@ class PhotoExifRecover(object):
 class PhotoExifRecoverBatch(object):
     def __init__(self, target_uin):
         self.target_uin = target_uin
+        self.e = []
 
     def batch(self, should_rename=True, should_add_exif=True):
         # re constants
@@ -118,24 +144,31 @@ class PhotoExifRecoverBatch(object):
         with open(album_info_dir, "r", encoding="utf-8") as album_info_f:
             album_info = json.load(album_info_f)
 
+        # No album at all!
+        if album_info["data"]["albumListModeSort"] is None:
+            print("【json记录中无相册！】")
+            return
+
         for album in album_info["data"]["albumListModeSort"]:
             album_dir = ""
             files_in_target_dir = os.listdir(target_dir)
             album_id_purged = purge_file_name(album["id"])
 
-            # find album fold
+            # find album folder
             for file_name_in_target_dir in files_in_target_dir:
                 if album_id_purged in file_name_in_target_dir:
                     album_dir = os.path.join(target_dir, file_name_in_target_dir)
+
                     # rename album fold
                     if should_rename:
                         if not re.search(p_date, file_name_in_target_dir):
-                            album_create_timestamp = int(album["createtime"])# 取相册创建时间
+                            album_create_timestamp = int(album["createtime"])  # 取相册创建时间
                             album_create_date = time.strftime('%Y%m%d %H%M%S', time.localtime(album_create_timestamp))
                             file_name_in_target_dir_new = album_create_date + " " + file_name_in_target_dir
                             album_dir_new = os.path.join(target_dir, file_name_in_target_dir_new)
                             os.rename(album_dir, album_dir_new)
                             album_dir = album_dir_new
+
                     break
             if album_dir == "":
                 print("相册文件夹缺失:", os.path.join(target_dir, album["name"]))
@@ -151,6 +184,11 @@ class PhotoExifRecoverBatch(object):
                 elif re.search(p_raw_json, file_name_in_album_dir):
                     raw_json_dir_list.append(os.path.join(album_dir, file_name_in_album_dir))
 
+            # floatview or raw json is missing!
+            if len(floatview_json_dir_list) == 0 or len(raw_json_dir_list) == 0:
+                print("【相册中照片json数据缺失】：", album_dir)
+                continue
+
             floatview_list = []
             raw_list = []
             for floatview_json_dir in floatview_json_dir_list:
@@ -164,9 +202,17 @@ class PhotoExifRecoverBatch(object):
                     for _raw_info in raw_json["data"]["photoList"]:
                         raw_list.append(_raw_info)
 
-            # floatview_info
+            # find downloaded folder and file list within
             downloaded_dir = os.path.join(album_dir, "downloaded")
+            # downloaded folder is missing!
+            if not os.path.exists(downloaded_dir):
+                print("【无downloaded文件夹】：", downloaded_dir)
+                continue
             photos_in_album_downloaded_dir = os.listdir(downloaded_dir)
+
+            # start to handle every photo within an album
+
+            # floatview_info
             for floatview_info in floatview_list:
                 lloc = floatview_info["lloc"]
 
@@ -184,45 +230,72 @@ class PhotoExifRecoverBatch(object):
                     if lloc_purged in photo_name:
                         photo_dir = os.path.join(downloaded_dir, photo_name)
                         break
-                if photo_dir != "":
-                    if should_add_exif:
+
+                if photo_dir == "":
+                    print("照片缺失:", os.path.join(downloaded_dir, lloc_purged))
+                    continue
+
+                # recover EXIF
+                if should_add_exif:
+                    try:
                         photoExifRecover = PhotoExifRecover(photo_dir, floatview_info, raw_info)
                         photoExifRecover.recover()
-                    # rename photo
-                    if should_rename:
+                    except Exception as e:
+                        error_message = "EXIF写入失败:" + photo_dir + "\n↘失败原因：" + str(e)
+                        print(error_message)
+                        self.e.append(error_message)
+                        continue  # 对于EXIF写入发生异常的文件跳过重命名步骤
 
-                        [dir_name, photo_name] = os.path.split(photo_dir)
-                        if not re.search(p_date, photo_name):
-                            exif_in_file = piexif.load(photo_dir)
-                            if "Exif" in exif_in_file.keys() and piexif.ExifIFD.DateTimeOriginal in exif_in_file["Exif"].keys() and exif_in_file["Exif"][piexif.ExifIFD.DateTimeOriginal]:
-                                photo_create_date = bytes.decode(exif_in_file["Exif"][piexif.ExifIFD.DateTimeOriginal]).replace(":", "")
-                                photo_name_new = photo_create_date + " " + photo_name
-                                photo_dir_new = os.path.join(dir_name, photo_name_new)
-                                os.rename(photo_dir, photo_dir_new)
-                                photoExifRecover.file_dir = photo_dir_new
-                                photo_dir = photo_dir_new
-                else:
-                    print("照片缺失:", os.path.join(downloaded_dir, lloc_purged))
+                # rename photo
+                if should_rename:
+                    [dir_name, photo_name] = os.path.split(photo_dir)
+                    if not re.search(p_date, photo_name):
+                        exif_in_file = piexif.load(photo_dir)
+                        if "Exif" in exif_in_file.keys() \
+                                and piexif.ExifIFD.DateTimeOriginal in exif_in_file["Exif"].keys() \
+                                and exif_in_file["Exif"][piexif.ExifIFD.DateTimeOriginal]:
+                            photo_create_date = \
+                                bytes.decode(exif_in_file["Exif"][piexif.ExifIFD.DateTimeOriginal]).replace(":", "")
+                            photo_name_new = photo_create_date + " " + photo_name
+                            photo_dir_new = os.path.join(dir_name, photo_name_new)
+                            os.rename(photo_dir, photo_dir_new)
+                            photoExifRecover.file_dir = photo_dir_new
+                            photo_dir = photo_dir_new
+
+    def show_error_list(self):
+        e_count = len(self.e)
+        if e_count <= 0:
+            print("***EXIF写入过程未发生异常***")
+        else:
+            print("***EXIF写入失败数量：", e_count, "***")
+            for e in self.e:
+                print(e)
 
 
-#输入
-target_uin = "" #此处填入目标QQ号或在运行时输入
-if target_uin == "":
-    target_uin = input("请输入要批处理的QQ号:")
-should_rename = True    #是否需要将相册和照片文件名前加入时间标识，格式为 "YYYYMMDD HHMMSS 原文件名"，便于排序整理
+if __name__ == "__main__":
+    # 输入
+    target_uin = ""  # 此处填入目标QQ号或在运行时输入
+    if target_uin == "":
+        target_uin = input("请输入要批处理的QQ号:")
+    should_rename = True  # 是否需要将相册和照片文件名前加入时间标识，格式为 "YYYYMMDD HHMMSS 原文件名"，便于排序整理
 
-photoExifRecoverBatch = PhotoExifRecoverBatch(target_uin)
+    photoExifRecoverBatch = PhotoExifRecoverBatch(target_uin)
 
-#文件完整性检查
-print("开始文件完整性检查")
-photoExifRecoverBatch.batch(False, False)
-print("***如果照片文件缺失，可单独手工下载，或调高timeout，重新运行exporter.py下载；\n***如果相册文件夹缺失，请确认是否有空相册。")
-input("按回车开始批处理...")
+    # 文件完整性检查
+    print("开始文件完整性检查")
+    photoExifRecoverBatch.batch(False, False)
+    print("***如果照片文件缺失，可单独手工下载，或调高timeout，重新运行exporter.py下载；"
+          "\n***如果相册文件夹缺失，请确认是否有空相册。\n")
+    input("按回车开始批处理...")
 
-#正式批处理
-print("开始批处理")
-photoExifRecoverBatch.batch(should_rename)
-print("批处理完成")
+    # 正式批处理
+    print("开始批处理")
+    photoExifRecoverBatch.batch(should_rename)
+    print("批处理完成\n")
+
+    # 异常打印
+    input("按回车显示EXIF写入异常清单...")
+    photoExifRecoverBatch.show_error_list()
 
 # by Yang-z
 
