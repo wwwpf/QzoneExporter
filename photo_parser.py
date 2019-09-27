@@ -1,17 +1,19 @@
 import os
 
-import config
-from download import Downloader, export_comment_media_url
+from config import QzoneFileName, QzonePath
+from download import Downloader
+from media_info import (export_media_url, extract_media_info_from_photo,
+                        write_media_info)
 from saver import Saver
 from tools import logging_wrap, purge_file_name
 
 
 class AlbumListInfo(Saver):
-    def __init__(self, json_data, dir):
-        Saver.__init__(self, json_data, dir, config.PHOTO_PATH)
+    def __init__(self, json_data, directory):
+        Saver.__init__(self, json_data, directory, QzonePath.PHOTO)
 
     def export(self):
-        self.save(config.PHOTO_ALBUM_INFO_FILE)
+        self.save(QzoneFileName.PHOTO_ALBUM_INFO)
 
 
 class AlbumInfo(object):
@@ -41,66 +43,61 @@ class AlbumInfo(object):
 
 
 class PhotoComment(Saver):
-    def __init__(self, json_data, begin, end, dir, album_dir, account_info):
+    def __init__(self, json_data, begin, end, directory, album_dir, account_info):
         Saver.__init__(self, json_data, os.path.join(
-            dir, config.PHOTO_PATH), album_dir)
-        self._file_name = "comment_%05d-%05d.json" % (begin, end - 1)
+            directory, QzonePath.PHOTO), album_dir)
+        self._filename = "comment_%05d-%05d.json" % (begin, end - 1)
 
         self._account_info = account_info
 
     @logging_wrap
     def export(self):
-        self.save(self._file_name)
+        self.save(self._filename)
 
         for comment in self.json_data["data"]["comments"]:
-            commenter_id = comment["poster"]["id"]
+            commenter_id = str(comment["poster"]["id"])
             # 当评论id与登录id不一致时导出可能存在的图片url
             if commenter_id != self._account_info.self_uin:
-                export_comment_media_url(
-                    comment, os.path.join(self.directory_path, ".."))
+                export_media_url(comment, self.directory_path)
 
 
 class PhotoParser(Saver):
-    def __init__(self, json_data, begin, end, dir, album_dir, float_view=False):
+    def __init__(self, json_data, begin, end, directory, album_dir, float_view=False):
         Saver.__init__(self, json_data, os.path.join(
-            dir, config.PHOTO_PATH), album_dir)
+            directory, QzonePath.PHOTO), album_dir)
 
         self._download_dir = os.path.join(
-            self.directory_path, config.DOWNLOAD_PATH)
+            self.directory_path, QzonePath.DOWNLOAD)
         self._float_view = float_view
-        file_name = "photo_%05d-%05d.json" if not float_view else "floatview_photo_%05d-%05d.json"
-        self._file_name = file_name % (begin, end - 1)
+        filename = "photo_%05d-%05d.json" if not float_view else "floatview_photo_%05d-%05d.json"
+        self._filename = filename % (begin, end - 1)
         self._photo_key = "photoList" if not float_view else "photos"
         self._id_key = "lloc" if not float_view else "picKey"
 
     @logging_wrap
     def export(self):
-        self.save(self._file_name)
+        self.save(self._filename)
 
         if not self._float_view:
             return
-        # 导出相片url
-        url_file = os.path.join(os.path.join(
-            self.directory_path, ".."), config.TO_DOWNLOAD_FILE)
-        with open(url_file, "a", encoding="utf-8") as f:
-            if self._photo_key in self.json_data["data"]:
-                for photo in self.json_data["data"][self._photo_key]:
 
-                    url = ""
-                    if photo["is_video"]:
-                        url = photo["video_info"]["video_url"]
-                    else:
-                        if "raw_upload" in photo and photo["raw_upload"] == 1:
-                            url = photo["raw"]
-                        elif "origin" in photo:
-                            url = photo["origin"]
-                    if len(url) == 0:
-                        url = photo["url"]
-                    f.write("%s\t%s\t%s\n" %
-                            (url, self._download_dir, photo[self._id_key]))
+        # 导出相片url
+        media_info_list = []
+        if self._photo_key in self.json_data["data"]:
+            for photo in self.json_data["data"][self._photo_key]:
+                media_info = extract_media_info_from_photo(photo, self._id_key)
+                media_info_list.append(media_info)
+        write_media_info(media_info_list, self._download_dir,
+                         os.path.join(self.directory_path, "..", QzoneFileName.TO_DOWNLOAD))
 
 
 class PhotoDownloader(Downloader):
-    def __init__(self, dir):
-        Downloader.__init__(self, config.TO_DOWNLOAD_FILE, config.DOWNLOADED_FILE,
-                            os.path.join(dir, config.PHOTO_PATH))
+    def __init__(self, directory):
+        Downloader.__init__(self, QzoneFileName.TO_DOWNLOAD, QzoneFileName.DOWNLOADED,
+                            os.path.join(directory, QzonePath.PHOTO))
+
+
+class PhotoCommentDownloader(Downloader):
+    def __init__(self, directory):
+        Downloader.__init__(self, QzoneFileName.TO_DOWNLOAD, QzoneFileName.DOWNLOADED,
+                            directory)

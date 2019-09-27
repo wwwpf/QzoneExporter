@@ -4,9 +4,9 @@ import time
 
 from bs4 import BeautifulSoup, Comment
 
-import config
+from config import QzonePath
 from saver import Saver
-from tools import logging_wrap
+from tools import logging_wrap, purge_file_name
 
 
 class BlogCategoryInfo(Saver):
@@ -23,9 +23,9 @@ class BlogCategoryInfo(Saver):
     '''
 
     def __init__(self, json_data, dir):
-        Saver.__init__(self, json_data, dir, config.BLOG_PATH)
+        Saver.__init__(self, json_data, dir, QzonePath.BLOG)
 
-        self._file_name = "category_info.json"
+        self._filename = "category_info.json"
 
         self._cate_info = self.json_data["data"]["cateInfo"]
 
@@ -47,15 +47,16 @@ class BlogCategoryInfo(Saver):
         return self._cate_info
 
     def export(self):
-        self.save(self._file_name)
+        self.save(self._filename)
 
 
 class BlogInfo(object):
-    def __init__(self, category, title, blog_id, comment_num):
+    def __init__(self, category, title, blog_id, comment_num, read_num=0):
         self._blog_id = blog_id
         self._title = title
         self._category = category
         self._comment_num = comment_num
+        self._read_num = read_num
 
     @property
     def blog_id(self):
@@ -73,29 +74,37 @@ class BlogInfo(object):
     def comment_num(self):
         return self._comment_num
 
+    @property
+    def read_num(self):
+        return self._read_num
+
+    def get_file_name(self):
+        return purge_file_name("%s_%s.html" % (self._title, self._blog_id))
+
 
 class BlogComment(Saver):
-    def __init__(self, json_data, begin, end, blog_info, dir):
+    def __init__(self, json_data, begin, end, blog_info, directory):
         Saver.__init__(self, json_data, os.path.join(
-            dir, config.BLOG_PATH), blog_info.category)
+            directory, QzonePath.BLOG), purge_file_name(blog_info.category))
 
-        self._file_name = "%s_%s_%05d-%05d.json" % (
+        self._filename = "%s_%s_%05d-%05d.json" % (
             blog_info.title, blog_info.blog_id, begin, end - 1)
+        self._filename = purge_file_name(self._filename)
 
     def export(self):
-        self.save(self._file_name)
+        self.save(self._filename)
 
 
 class BlogParser(object):
-    def __init__(self, dir, blog_info, html_content, read_num=0):
+    def __init__(self, directory, blog_info, html_content, read_num=0):
         self._html_content = html_content
 
-        directory_path = os.path.join(dir, config.BLOG_PATH)
-        blog_path = os.path.join(directory_path, blog_info.category)
+        blog_path = os.path.join(
+            directory, QzonePath.BLOG, purge_file_name(blog_info.category))
         if not os.path.exists(blog_path):
             os.makedirs(blog_path)
-        file_name = "%s_%s.html" % (blog_info.title, blog_info.blog_id)
-        self._blog_file_name = os.path.join(blog_path, file_name)
+        filename = blog_info.get_file_name()
+        self._blog_filename = os.path.join(blog_path, filename)
 
         self._blog_info = blog_info
         self._read = read_num
@@ -104,7 +113,7 @@ class BlogParser(object):
 
     @logging_wrap
     def export(self):
-        with open(self._blog_file_name, "w", encoding="utf-8") as f:
+        with open(self._blog_filename, "w", encoding="utf-8") as f:
 
             self._bs_obj.title.string = self._blog_info.title
 
@@ -123,6 +132,7 @@ class BlogParser(object):
                 "%Y-%m-%d %H:%M:%S", time.localtime(self._blog_info.blog_id))
 
             readnum = self._bs_obj.find("span", {"id": "readNum"})
-            readnum.string = "阅读(%d)\t评论(%d)" % (self._read, self._blog_info.comment_num)
+            readnum.string = "阅读(%d)\t评论(%d)" % (
+                self._read, self._blog_info.comment_num)
 
             f.write(self._bs_obj.prettify())

@@ -3,22 +3,22 @@ import json
 import logging
 import math
 import os
-import time
 from threading import Lock
 
-import requests
 
-import config
 from account_info import AccountInfo
 from blog_parser import BlogComment, BlogInfo, BlogParser
+from config import RETRY_TIMES, QzoneFileName, QzonePath
+from login import calc_g_tk
 from msgborad_parser import MsgBoardParser
 from photo_parser import (AlbumInfo, AlbumListInfo, PhotoComment,
-                          PhotoDownloader, PhotoParser)
+                          PhotoCommentDownloader, PhotoDownloader, PhotoParser)
 from shuoshuo_parser import ShuoShuoMediaDownloader, ShuoShuoParser
-from tools import get_json_data_from_response, logging_wrap, random_sleep
+from tools import (get_json_data_from_response, logging_wrap, random_sleep,
+                   test_uin_valid)
 
 
-class QZoneExporter(object):
+class QzoneExporter(object):
     '''QQ空间数据导出
     '''
 
@@ -43,9 +43,9 @@ class QZoneExporter(object):
 
     def __init__(self, self_uin, g_tk, cookies_value, args, target_uin=None):
 
-        if not QZoneExporter._logging_inited:
-            QZoneExporter._init_logging()
-            QZoneExporter._logging_inited = True
+        if not QzoneExporter._logging_inited:
+            QzoneExporter._init_logging()
+            QzoneExporter._logging_inited = True
 
         self._account_info = AccountInfo(
             self_uin, g_tk, cookies_value, target_uin)
@@ -67,15 +67,29 @@ class QZoneExporter(object):
 
         self._can_access = False
 
-        self._get_main_page_data()
-
     def export(self):
         '''导出数据
         '''
 
         d = vars(self._args)
         all_options = "all"
-        get_like_data = d["like"]
+
+        old_flag = d["download"]
+        d["download"] = False
+        all_flag = False
+        for k, v in d.items():
+            if v:
+                all_flag = True
+                break
+        # 从本地文件下载数据
+        if not all_flag:
+            self._func_map["download"]()
+            return
+        d["download"] = old_flag
+
+        # 从服务器抓取数据
+        self._get_main_page_data()
+        get_like_data = False
         for option in self._func_map.keys():
             if d[option] or d[all_options]:
                 self._func_map[option](get_like_data)
@@ -105,10 +119,10 @@ class QZoneExporter(object):
             os.makedirs(self._directory)
 
         main_page_file_name = "%s_main_page.json" % self._account_info.target_uin
-        file_name = os.path.join(self._directory, main_page_file_name)
-        with open(file_name, "w", encoding="utf-8") as f:
+        filename = os.path.join(self._directory, main_page_file_name)
+        with open(filename, "w", encoding="utf-8") as f:
             json.dump(main_json_data, f, ensure_ascii=False, indent=4)
-            logging.info("save main page data to %s" % file_name)
+            logging.info("save main page data to %s" % filename)
 
         if main_json_data["code"] != 0:
             print("error:", main_json_data["message"])
@@ -186,9 +200,15 @@ class QZoneExporter(object):
                     single_blog_url, params=single_blog_payload)
 
                 read = 0
-                new_data = statistical_json_data["data"][0]["current"]["newdata"]
-                if new_data and len(new_data) > 0:
-                    read = new_data["RZRD"]
+                try:
+                    new_data = statistical_json_data["data"][0]["current"]["newdata"]
+                    if new_data and len(new_data) > 0:
+                        read = new_data["RZRD"]
+                except Exception as e:
+                    print("get read num error")
+                    print(e)
+                    logging.exception(blog_info)
+                    logging.exception(e)
 
                 single_blog = BlogParser(
                     self._directory, blog_info, temp.text, read)
@@ -324,9 +344,8 @@ class QZoneExporter(object):
             return
 
         unikey_pattern = "http://user.qzone.qq.com/%s/mood/%s"
-        shuoshuo_path = os.path.join(
-            self._directory, config.SHUOSHUO_PATH)
-        file = os.path.join(shuoshuo_path, config.SHUOSHUO_TID_FILE)
+        file = os.path.join(
+            self._directory, QzonePath.SHUOSHUO, QzoneFileName.SHUOSHUO_TID)
         with open(file, "r", encoding="utf-8") as f:
             for line in f:
                 shuoshuo_tid = line.strip("\n")
@@ -361,9 +380,8 @@ class QZoneExporter(object):
         if not self._account_info.is_self():
             return
 
-        shuoshuo_path = os.path.join(
-            self._directory, config.SHUOSHUO_PATH)
-        file = os.path.join(shuoshuo_path, config.SHUOSHUO_TID_FILE)
+        file = os.path.join(
+            self._directory, QzonePath.SHUOSHUO, QzoneFileName.SHUOSHUO_TID)
         count = 0
         with open(file, "r", encoding="utf-8") as f:
             for line in f:
@@ -376,15 +394,15 @@ class QZoneExporter(object):
     @staticmethod
     def _get_album_list_data_len(album_list_data):
         album_list_len = 0
-        if QZoneExporter.ALBUM_LIST_MODE_SORT_KEY in album_list_data:
+        if QzoneExporter.ALBUM_LIST_MODE_SORT_KEY in album_list_data:
             # 普通视图
-            return len(album_list_data[QZoneExporter.ALBUM_LIST_MODE_SORT_KEY] or [])
-        elif QZoneExporter.ALBUM_LIST_MODE_CLASS_KEY in album_list_data:
+            return len(album_list_data[QzoneExporter.ALBUM_LIST_MODE_SORT_KEY] or [])
+        elif QzoneExporter.ALBUM_LIST_MODE_CLASS_KEY in album_list_data:
             # 分类视图
-            for temp_album in album_list_data[QZoneExporter.ALBUM_LIST_MODE_CLASS_KEY]:
-                if QZoneExporter.ALBUM_LIST_KEY in temp_album:
+            for temp_album in album_list_data[QzoneExporter.ALBUM_LIST_MODE_CLASS_KEY]:
+                if QzoneExporter.ALBUM_LIST_KEY in temp_album:
                     album_list_len += len(
-                        temp_album[QZoneExporter.ALBUM_LIST_KEY] or [])
+                        temp_album[QzoneExporter.ALBUM_LIST_KEY] or [])
         return album_list_len
 
     @logging_wrap
@@ -412,7 +430,7 @@ class QZoneExporter(object):
             "pageNum": "%d" % current_num
         }
 
-        for i in range(config.RETRY_TIMES):
+        for i in range(RETRY_TIMES):
             r = self._account_info.get_url(album_list_url, params=payload)
             json_data = get_json_data_from_response(r.text)
             result_code = json_data["code"]
@@ -426,9 +444,9 @@ class QZoneExporter(object):
         # 返回的相册列表根据相册的展示设置在不同的位置中
         # 普通视图：albumListModeSort，json_data["data"][key]是相册列表
         # 分类视图：albumListModeClass，(json_data["data"][key]的元素)["albumList"]是相册列表
-        album_list_mode_key = QZoneExporter.ALBUM_LIST_MODE_SORT_KEY
+        album_list_mode_key = QzoneExporter.ALBUM_LIST_MODE_SORT_KEY
         if album_list_mode_key not in json_data["data"]:
-            album_list_mode_key = QZoneExporter.ALBUM_LIST_MODE_CLASS_KEY
+            album_list_mode_key = QzoneExporter.ALBUM_LIST_MODE_CLASS_KEY
             if album_list_mode_key not in json_data["data"]:
                 logging.warning("album list data not found in %s"
                                 % json_data["data"])
@@ -440,7 +458,7 @@ class QZoneExporter(object):
         self._album_num = albums_num = json_data["data"]["albumsInUser"]
         print("total album num", self._album_num)
 
-        current_num = QZoneExporter._get_album_list_data_len(json_data["data"])
+        current_num = QzoneExporter._get_album_list_data_len(json_data["data"])
         total_num = current_num
         loop_num = math.ceil(albums_num / num)
         for i in range(1, loop_num):
@@ -448,7 +466,7 @@ class QZoneExporter(object):
             current_num = num if i < loop_num - 1 else albums_num - (i * num)
             payload["pageStart"] = "%d" % pos
             payload["pageNum"] = "%d" % current_num
-            for i in range(config.RETRY_TIMES):
+            for i in range(RETRY_TIMES):
                 r = self._account_info.get_url(album_list_url, params=payload)
                 temp_json_data = get_json_data_from_response(r.text)
                 result_code = temp_json_data["code"]
@@ -462,7 +480,7 @@ class QZoneExporter(object):
                 if not temp_json_data["data"][album_list_mode_key]:
                     print("album is null, break")
                     break
-                total_num += QZoneExporter._get_album_list_data_len(
+                total_num += QzoneExporter._get_album_list_data_len(
                     temp_json_data["data"])
 
             json_data["data"][album_list_mode_key] += temp_json_data["data"][album_list_mode_key]
@@ -477,12 +495,12 @@ class QZoneExporter(object):
             return
 
         album_list_data = []
-        if album_list_mode_key == QZoneExporter.ALBUM_LIST_MODE_SORT_KEY:
+        if album_list_mode_key == QzoneExporter.ALBUM_LIST_MODE_SORT_KEY:
             album_list_data = album_list_info.json_data["data"][album_list_mode_key]
         else:
             for temp_album in album_list_info.json_data["data"][album_list_mode_key]:
-                if QZoneExporter.ALBUM_LIST_KEY in temp_album:
-                    album_list_data += temp_album[QZoneExporter.ALBUM_LIST_KEY]
+                if QzoneExporter.ALBUM_LIST_KEY in temp_album:
+                    album_list_data += temp_album[QzoneExporter.ALBUM_LIST_KEY]
 
         for album_data in album_list_data:
             album_info = AlbumInfo(album_data)
@@ -540,7 +558,7 @@ class QZoneExporter(object):
             "outCharset": "utf-8",
             "appid": "4",
             "isFirst": "1",
-            "picKey": "unknow",
+            "picKey": "unknown",
             "postNum": "0"                  # 获取后续照片数量
         }
 
@@ -684,8 +702,8 @@ class QZoneExporter(object):
         print("process like data:", unikey)
 
         data_count_file = os.path.join(
-            self._directory, QZoneExporter.DATA_COUNT_FILE)
-        with QZoneExporter._lock:
+            self._directory, QzoneExporter.DATA_COUNT_FILE)
+        with QzoneExporter._lock:
             if not os.path.exists(data_count_file):
                 with open(data_count_file, "w", encoding="utf-8") as f:
                     f.write("{\n}")
@@ -703,14 +721,21 @@ class QZoneExporter(object):
         }
         r = self._account_info.get_url(like_count_url, params=payload)
         unikey_json_data = get_json_data_from_response(r.text)
-        like_count = unikey_json_data["data"][0]["current"]["likedata"]["cnt"]
+        try:
+            like_count = unikey_json_data["data"][0]["current"]["likedata"]["cnt"]
+        except Exception as e:
+            print(e)
+            logging.exception("unikey: %s" % unikey)
+            logging.exception(unikey_json_data)
+            logging.exception(e)
+            like_count = 0
 
         json_data[unikey] = {}
-        json_data[unikey][QZoneExporter.LIKE_COUNT_KEY] = unikey_json_data
+        json_data[unikey][QzoneExporter.LIKE_COUNT_KEY] = unikey_json_data
 
         if like_count <= 0:
             print(unikey, "has no like data")
-            json_data[unikey][QZoneExporter.LIKE_DETAILED_KEY] = "no like detailed data"
+            json_data[unikey][QzoneExporter.LIKE_DETAILED_KEY] = "no like detailed data"
         else:
             # 获取点赞详细信息
             like_data_url = "https://user.qzone.qq.com/proxy/domain/users.qzone.qq.com/cgi-bin/likes/get_like_list_app"
@@ -728,7 +753,7 @@ class QZoneExporter(object):
                 "g_tk": self._account_info.g_tk
             }
 
-            json_data[unikey][QZoneExporter.LIKE_DETAILED_KEY] = []
+            json_data[unikey][QzoneExporter.LIKE_DETAILED_KEY] = []
             while True:
                 payload["begin_uin"] = begin_uin
                 payload["query_count"] = "%d" % query_count
@@ -752,7 +777,7 @@ class QZoneExporter(object):
                     break
 
                 like_json_data = json.loads(temp)
-                json_data[unikey][QZoneExporter.LIKE_DETAILED_KEY].append(
+                json_data[unikey][QzoneExporter.LIKE_DETAILED_KEY].append(
                     like_json_data)
 
                 if "data" not in like_json_data:
@@ -800,7 +825,7 @@ class QZoneExporter(object):
         }
 
         # 获取前20条留言及留言总数
-        for i in range(config.RETRY_TIMES):
+        for i in range(RETRY_TIMES):
             r = self._account_info.get_url(url_pattern, params=payload)
             json_data = get_json_data_from_response(r.text)
             result_code = json_data["code"]
@@ -826,7 +851,7 @@ class QZoneExporter(object):
             current_num = num if i < loop_num - 1 else msg_num - (i * num)
             payload["start"] = "%d" % pos
             payload["num"] = "%d" % current_num
-            for i in range(config.RETRY_TIMES):
+            for i in range(RETRY_TIMES):
                 r = self._account_info.get_url(url_pattern, params=payload)
                 json_data = get_json_data_from_response(r.text)
                 result_code = json_data["code"]
@@ -856,6 +881,16 @@ class QZoneExporter(object):
         photo_downloader = PhotoDownloader(self._directory)
         photo_downloader.download()
 
+        photo_dir = os.path.join(self._directory, QzonePath.PHOTO)
+        if not os.path.exists(photo_dir):
+            return
+        files = os.listdir(photo_dir)
+        for album_dir in files:
+            if not os.path.isdir(album_dir):
+                continue
+            comment_downloader = PhotoCommentDownloader(album_dir)
+            comment_downloader.download()
+
 
 def main():
 
@@ -866,8 +901,9 @@ def main():
     parser.add_argument("--photo", help="导出相册数据", action="store_true")
     parser.add_argument("--shuoshuo", help="导出说说数据", action="store_true")
     parser.add_argument(
-        "--like", help="导出点赞数据，需要设置--photo或--shuoshuo", action="store_true")
-    parser.add_argument("--download", help="下载图片或视频至本地，需要先导出说说或相册的json数据", action="store_true")
+        "--like", help="[deprecated]导出点赞数据，需要设置--photo或--shuoshuo", action="store_true")
+    parser.add_argument(
+        "--download", help="下载图片或视频至本地，需要先导出说说或相册的json数据", action="store_true")
 
     parser.add_argument("--all", help="导出所有数据", action="store_true")
 
@@ -879,10 +915,27 @@ def main():
 
     target_uin = ""
     self_uin = ""
-    g_tk = ""
     cookies_value = ""
+    g_tk = ""  # 可选，为空则通过 cookies 中的 p_skey 计算
 
-    q = QZoneExporter(self_uin, g_tk, cookies_value, args, target_uin)
+    p_skey_string = "p_skey="
+    while not test_uin_valid(target_uin):
+        target_uin = input("请输入需要导出数据的QQ号：")
+    while not test_uin_valid(self_uin):
+        self_uin = input("请输入用于登录的QQ号：")
+    while True:
+        if len(cookies_value) == 0:
+            cookies_value = input("请输入 cookies：")
+        pos = cookies_value.find(p_skey_string)
+        p_skey_start = pos + len(p_skey_string)
+        p_skey_end = cookies_value.find(";", p_skey_start)
+        p_skey_end = p_skey_end if p_skey_end >= 0 else len(cookies_value)
+        p_skey = cookies_value[p_skey_start:p_skey_end]
+        g_tk = str(calc_g_tk(p_skey))
+        if len(g_tk) > 0:
+            break
+
+    q = QzoneExporter(self_uin, g_tk, cookies_value, args, target_uin)
     q.export()
 
     print("done")

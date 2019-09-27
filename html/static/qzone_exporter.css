@@ -1,0 +1,29 @@
+#background
+{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width:100%;
+    height:100%;
+    z-index: -9999;
+    background: url("background.png") center center no-repeat;
+    background-size: cover;
+    overflow: hidden;
+}
+
+#footer
+{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 999999;
+}
+
+.preview a
+{
+    background-color: black;
+    color: white;
+    text-decoration: none;
+}

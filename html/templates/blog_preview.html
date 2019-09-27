@@ -1,0 +1,88 @@
+{% extends "index_base.html" %}
+{% block stylesheet %}
+<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/blog_app.css')}}" />
+{% endblock %}
+{% block content %}
+<div class="bg_mode bg">
+  <div class="box_ml bor">
+    <div class="mode_gb">
+      <div class="bor mod-tab">
+        <div class="mod-tab-list">
+          <ul id="main-nav">
+            <li>
+              <a href="/{{uin}}/blog/" class="c-tx2 selected">
+                <span class="item-wrap bor-tx">我的日志</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="mode_gb_cont">
+        <div class="blog_app" id="app_mod_blog" style="min-height: 400px;">
+          <div class="wrap wrap_aside">
+            <div class="main">
+              <div class="inner_main">
+                <div class="mod_conts">
+                  <div id="page-container-blog">
+                    <div id="listArea" class="mod_list tbor2">
+                      <ul>
+                        {% for blog_info in blog_list %}
+                        <li rel="list-row">
+                          <div class="list_tit" rel="list-row" style="width:68%">
+                            <span class="article">
+                              <a blogid="{{blog_info.blog_id}}" class="c_tx2"
+                                href="/{{uin}}/blog/{{blog_info.category|purge_file|purge_file}}/{{blog_info.blog_id}}"
+                                title="{{blog_info.title|safe}} -- 发表于{{blog_info.blog_id|format_datetime}}">
+                                <span>{{blog_info.title|safe}}</span>
+                              </a>
+                            </span>
+                          </div>
+                          <div class="list_op c_tx3">
+                            <span title="{{blog_info.blog_id|format_datetime}}">{{blog_info.blog_id|format_datetime}}</span>
+                            <span
+                              title="评论{{blog_info.comment_num}}:/阅读:{{blog_info.read_num}}">(<span>{{blog_info.comment_num}}/</span><span>{{blog_info.read_num}}</span>)</span>
+                          </div>
+                        </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="aside">
+              <div id="side_ad" style="display:none" class="mod_box bbor3"></div>
+              <!-- 分类 -->
+              <div class="mod_box blog_sorts bbor3" id="rightCateArea">
+                <div class="hd">
+                  <h4>日志分类</h4>
+                </div>
+                <div class="bd" id="cateListContainer">
+                  <div class="mod_list">
+                    <ul id="cateList">
+                      <li class="bg3_hover">
+                        <a class="c_tx" href="/{{uin}}/blog/" title="共{{main_data['blog']}}篇日志">
+                          <span class="left">全部日志</span>
+                          <span class="right">({{main_data['blog']}})</span>
+                        </a>
+                      </li>
+                      {% for category, blog_info_dict in categories.items() %}
+                      <li class="bg3_hover">
+                        <a href="/{{uin}}/blog/{{category|purge_file|purge_file}}" title="{{blog_info_dict|length}}篇日志"
+                          class="c_tx">
+                          <span class="left">{{category|safe}}</span>
+                          <span class="right">({{blog_info_dict|length}})</span></a>
+                      </li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div><!-- end of aside -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

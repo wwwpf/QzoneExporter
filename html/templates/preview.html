@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<ul class="preview">
+  {% for uin in uins: %}
+  <li>
+    <a href="/{{uin}}" title="{{uin}}"><img src="{{uin|get_uin_avatar_url}}" height="50">{{uin}}</a>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}
+{% block background %}
+<div id="background"></div>
+{% endblock %}

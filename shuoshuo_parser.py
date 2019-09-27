@@ -1,13 +1,10 @@
-import json
 import logging
 import math
 import os
 
-import requests
-
-import config
-from download import (Downloader, export_comment_media_url,
-                      export_content_media_url)
+from config import QzoneFileName, QzoneKey, QzonePath, QzoneType
+from download import Downloader
+from media_info import export_media_url
 from saver import Saver
 from tools import get_json_data_from_response, logging_wrap, random_sleep
 
@@ -16,12 +13,12 @@ class ShuoShuoParser(Saver):
 
     _shuoshuo_count = 0
 
-    def __init__(self, account_info, json_data, begin, end, dir="."):
-        Saver.__init__(self, json_data, dir, config.SHUOSHUO_PATH)
+    def __init__(self, account_info, json_data, begin, end, directory="."):
+        Saver.__init__(self, json_data, directory, QzonePath.SHUOSHUO)
 
         self._account_info = account_info
 
-        self._file_name = "shuoshuo_%05d-%05d.json" % (begin, end - 1)
+        self._filename = "shuoshuo_%05d-%05d.json" % (begin, end - 1)
 
     @logging_wrap
     def _parse_single_shuoshuo(self, tid, comment_num):
@@ -60,6 +57,54 @@ class ShuoShuoParser(Saver):
         return result
 
     @logging_wrap
+    def _parse_all_picture(self, msg):
+        floatview_photo_list = "https://h5.qzone.qq.com/proxy/domain/photo.qzone.qq.com/fcgi-bin/cgi_floatview_photo_list_v2"
+        floatview_photo_payload = {
+            "g_tk": self._account_info.g_tk,
+            "topicId": "%s_%s_1" % (self._account_info.target_uin, msg["tid"]),
+            "hostUin": self._account_info.target_uin,
+            "uin": self._account_info.self_uin,
+            "fupdate": "1",
+            "plat": "qzone",
+            "source": "qzone",
+            "cmtNum": "99",
+            "need_private_comment": "1",
+            "inCharset": "utf-8",
+            "outCharset": "utf-8",
+            "appid": "311",
+            "isFirst": "1",
+            "picKey": "%s,%s" % (msg["tid"], msg[QzoneType.PICTURE][0][QzoneKey.CONTENT_URL[0]])
+        }
+        r = self._account_info.get_url(
+            floatview_photo_list, params=floatview_photo_payload)
+        floatview_json_data = get_json_data_from_response(r.text)
+        return floatview_json_data
+
+    @logging_wrap
+    def _parse_full_content(self, msg):
+        msgdetail = "https://user.qzone.qq.com/proxy/domain/taotao.qq.com/cgi-bin/emotion_cgi_msgdetail_v6"
+        msgdetail_payload = {
+            "tid": msg["tid"],
+            "uin": self._account_info.self_uin,
+            "t1_source": "1",
+            "not_trunc_con": "1",
+            "hostuin": self._account_info.target_uin,
+            "code_version": "1",
+            "format": "json",
+            "qzreferrer": "https://user.qzone.qq.com/%s" % (self._account_info.target_uin),
+        }
+        msgdetail_params = {
+            "g_tk": self._account_info.g_tk
+        }
+
+        r = self._account_info.post_url(msgdetail,
+                                        params=msgdetail_params,
+                                        data=msgdetail_payload)
+        r_json = r.json()
+        msg["content"] = r_json["content"]
+        msg["conlist"] = r_json["conlist"]
+
+    @logging_wrap
     def export(self, need_download_media=False):
         '''默认下载非登录id发表的资源
         '''
@@ -67,9 +112,10 @@ class ShuoShuoParser(Saver):
         if "msglist" in self.json_data:
             msglist = self.json_data["msglist"]
             tid_file = os.path.join(
-                self.directory_path, config.SHUOSHUO_TID_FILE)
+                self.directory_path, QzoneFileName.SHUOSHUO_TID)
             with open(tid_file, "a", encoding="utf-8") as f:
-                for i in range(0, len(msglist)):
+                msglist_len = len(msglist)
+                for i in range(msglist_len):
                     msg = msglist[i]
                     print("%05d\t" % ShuoShuoParser._shuoshuo_count,
                           "process shuoshuo, tid:", msg["tid"])
@@ -88,27 +134,36 @@ class ShuoShuoParser(Saver):
                         for comment in comment_list:
                             if comment["uin"] != self._account_info.self_uin \
                                     or need_download_media:
-                                export_comment_media_url(
-                                    comment, self.directory_path)
+                                export_media_url(comment, self.directory_path)
+
+                    # 说说图片大于 9 张
+                    if QzoneType.PICTURE in msg and msg[QzoneType.PICTURE]\
+                            and QzoneKey.PIC_TOTAL in msg and msg[QzoneKey.PIC_TOTAL]\
+                            and len(msg[QzoneType.PICTURE]) == 9\
+                            and msg[QzoneKey.PIC_TOTAL] > 9:
+                        floatview_data = self._parse_all_picture(msg)
+                        msglist[i][QzoneKey.OPTION_DATA] = {}
+                        msglist[i][QzoneKey.OPTION_DATA][QzoneKey.SHUOSHUO_FLOATVIEW] =\
+                            self._parse_all_picture(msg)
+                        msg = msglist[i]
+
+                    # 需要获取全文
+                    if msg.get("has_more_con"):
+                        self._parse_full_content(msg)
 
                     if self._account_info.target_uin != self._account_info.self_uin \
                             or need_download_media:
-                        for media_type in config.MEDIA_TYPE:
-                            if media_type in msg:
-                                medias = msg[media_type]
-                                for media in medias:
-                                    export_content_media_url(
-                                        media, media_type, self.directory_path)
+                        export_media_url(msg, self.directory_path)
 
                     ShuoShuoParser._shuoshuo_count += 1
 
                     if need_sleep:
                         random_sleep(0, 1)
 
-        self.save(self._file_name)
+        self.save(self._filename)
 
 
 class ShuoShuoMediaDownloader(Downloader):
-    def __init__(self, dir):
-        Downloader.__init__(self, config.TO_DOWNLOAD_FILE, config.DOWNLOADED_FILE,
-                            os.path.join(dir, config.SHUOSHUO_PATH))
+    def __init__(self, directory):
+        Downloader.__init__(self, QzoneFileName.TO_DOWNLOAD, QzoneFileName.DOWNLOADED,
+                            os.path.join(directory, QzonePath.SHUOSHUO))

@@ -1,10 +1,13 @@
-# QZoneExporter
+# QzoneExporter
 
-QQ空间数据导出。
+QQ空间数据导出及显示。
 
-- 导出日志、留言板、相册、说说、点赞数据。
+- 导出日志、留言板、相册、说说等数据。
 - 将说说、相册中的图片及视频下载至本地。
+- 以网页形式显示本地数据，可在浏览时自动下载图片及视频。
 - 支持 Exif 信息写回照片，时间写入文件名。（由[Yang-z](https://github.com/wwwpf/QzoneExporter/pull/8)及[greysign](https://github.com/wwwpf/QzoneExporter/pull/5)提供）
+
+导出数据
 
 ```shell
 usage: exporter.py [-h] [--blog] [--msgboard] [--photo] [--shuoshuo] [--like]
@@ -16,26 +19,63 @@ optional arguments:
   --msgboard  导出留言板数据
   --photo     导出相册数据
   --shuoshuo  导出说说数据
-  --like      导出点赞数据，需要设置--photo或--shuoshuo
   --download  下载图片或视频至本地
   --all       导出所有数据
+```
+
+显示数据
+
+```shell
+usage: displayer.py [-h] [--download]
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --download  当本地不存在图片、视频时，尝试下载至本地
 ```
 
 ## 输入
 
 - target_uin
-  需要导出数据的QQ号
-- uin
-  用于登录空间的QQ号
-- g_tk, cookies_value
-  从浏览器登录QQ空间，按 `F12`，点击 `Network` 选项卡，点击QQ空间“我的主页“，点击 `XHR`，点击 `main_page_cgi` 请求，从 `Header` 中找出 `g_tk` 及 `cookie`。如图所示：
+  需要导出数据的QQ号。
+- self_uin
+  用于登录空间的QQ号。
+- cookies_value
+  从浏览器登录QQ空间，按 `F12`，点击 `Network` 选项卡，点击QQ空间“我的主页“，点击 `XHR`，点击 `main_page_cgi` 请求，从 `Header` 中找出 `cookie`，如图所示。
+- g_tk
+  可通过 cookies_value 中的 `p_skey` 计算，选填。
   ![获取g_tk及cookie](pic/1.png)
 
 登录QQ需要有访问目标QQ空间的权限。
 
-## 输出
+## 网页显示效果
 
-输出的文件如下：
+### 预览
+
+![预览](pic/html_preview.png)
+
+### 日志
+
+![blog](pic/html_blog0.png)
+
+![blog](pic/html_blog1.png)
+
+### 留言板
+
+![msgboard](pic/html_msgboard.png)
+
+### 相册
+
+![photo](pic/html_photo0.png)
+
+![photo](pic/html_photo1.png)
+
+![photo](pic/html_photo2.png)
+
+### 说说
+
+![shuoshuo](pic/html_shuoshuo.png)
+
+## 输出文件
 
 ```plain
 target_uin/
@@ -85,15 +125,18 @@ target_uin/
 
 ## 说明
 
-- 数据以json格式保存，未对其进行进一步的显示，如有需要可自行处理。
+- 数据以json格式保存，可通过网页显示主要数据。
 - 导出的数据是登录账号可见的数据，“仅主人可见”等数据无法获取。
+- 导出的视频链接有时效性，超时无法访问。
+- 如果相册图片数量较多并且未下载至本地时，网页显示会比较慢。
 
 ## 依赖
 
 - requests
 - bs4
-- python3
+- Python ≥ 3.6
 - piexif（Exif 信息写回）
+- Flask（网页显示）
 
 ## 使用
 
@@ -101,13 +144,11 @@ target_uin/
 # exporter.py
 # 根据需要设定以下变量
 target_uin = "需要导出数据的QQ号"
-uin = "登录空间的QQ号"
-g_tk = "从浏览器获取"
+self_uin = "登录空间的QQ号"
 cookies_value = "从浏览器获取"
-q = QZoneExporter(uin, g_tk, cookies_value, args, target_uin)
+g_tk = "从浏览器获取"   # 可选，会尝试通过 cookies 计算
+q = QzoneExporter(self_uin, g_tk, cookies_value, args, target_uin)
 q.export()
-
-print("done")
 ```
 
 ### 示例
@@ -133,6 +174,12 @@ python exporter.py --download
 python exporter.py --photo --download
 ```
 
+#### 网页显示
+
+```shell
+python displayer.py [--download]
+```
+
 #### Exif 信息写回照片
 
 具体使用参考 `photo_exif_recover.py` 内的说明。
@@ -141,8 +188,29 @@ python exporter.py --photo --download
 
 - 某些图片通过sharpP格式传输，无法打开。
 - 进度的保存。
+- 由于数据未抓取到本地、不想写等原因，网页显示时忽略了一些无关紧要的数据。
+- 未能完全测试所有情况，因此网页显示时可能会出现某些错误。
+
+## 更新记录
+
+- 2019.09.22 修复: 长说说未获取全文
+- 2019.06.16 修复: 说说第九张之后的图片未处理
+- 2019.05.30 修复: 某些情况下说说中的视频被判断为图片。
+- 2019.05.10 支持网页显示；使用多线程下载，去掉超时设置；去掉点赞数据的抓取；修复了文件名可能非法的问题。
+- 2018.08.04 修复: 无法获取分类视图的相册。
 
 ## 参考
 
 - [QQ 空间爬虫之爬取说说](https://kylingit.com/blog/qq-空间爬虫之爬取说说/)
   感谢这篇博客提供的思路。
+- [QQ空间](https://qzone.qq.com/) 网页显示本地数据时使用的样式与布局均来自于QQ空间。
+
+## LICENSE
+
+GPL-3.0，额外条件：禁止商用。
+
+## 捐赠
+
+如果您认为该项目在一定程度上帮助了您，可以赞赏我:D
+
+![赞赏码](https://raw.githubusercontent.com/wwwpf/ttt/master/qr.png)

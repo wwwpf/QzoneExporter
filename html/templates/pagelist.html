@@ -1,0 +1,109 @@
+{% macro pagelist_impl(current_page, total_page, class_value, previous_icon="", next_icon="") %}
+{% if current_page > 1 %}
+<a href="../{{current_page-1}}" title="上一页" id="pager_previous_5" class={{class_value}}>
+  {% if previous_icon | length > 0 %}
+    <i class="{{previous_icon}}"></i>
+  {% else %}
+    <span>上一页</span>
+  {% endif %}
+</a>
+{% endif %}
+{% set displayed_pages = current_page | get_displayed_page_nums(total_page) %}
+{% for p in displayed_pages %}
+  {% if p == 1 %}
+    {% if current_page == 1 %}
+      <span class="current"><span>{{current_page}}</span></span>
+    {% else %}
+      <a href="../1" title="首页" class={{class_value}}>
+        <span>1</span>
+      </a>
+      {% if current_page > 4 %}
+        <span class="mod_pagenav_more"><span>…</span></span>
+      {% endif %}
+    {% endif %}
+  {% elif p == current_page %}
+    <span class="current"><span>{{current_page}}</span></span>
+  {% elif p == total_page %}
+    {% if current_page == total_page %}
+      <span class="current"><span>{{current_page}}</span></span>
+    {% else %}
+      {% if current_page < total_page - 3 %}
+        <span class="mod_pagenav_more"><span>…</span></span>
+      {% endif %}
+      <a href="../{{total_page}}" title="末页" class={{class_value}}>
+        <span>{{total_page}}</span>
+      </a>
+    {% endif %}
+  {% else %}
+    <a href="../{{p}}" title="{{p}}" class={{class_value}}>
+      <span>{{p}}</span>
+    </a>
+  {% endif %}
+{% endfor %}
+{% if current_page < total_page %}
+  <a href="../{{current_page+1}}" title="下一页" id="pager_next_0" class={{class_value}}>
+    {% if next_icon | length > 0 %}
+      <i class="{{next_icon}}"></i>
+    {% else %}
+      <span>下一页</span>
+    {% endif %}
+  </a>
+{% endif %}
+{% endmacro %}
+
+
+{% macro pagelist(current_page, total_page, class_value, input_id) %}
+<div class="mod_pagenav">
+  <p class="mod_pagenav_main">
+    {{pagelist_impl(current_page, total_page, "c_tx")}}
+  </p>
+  <p class="mod_pagenav_option">
+    <span class="mod_pagenav_turn">到
+      <input type="text" id="{{input_id}}" class="textinput">页
+      <button id="pager_gobtn_0" type="button" class="bt_tx2"
+        onclick="window.location.href='../' + document.getElementById('{{input_id}}').value;">
+        <span>确定</span>
+      </button>
+    </span>
+  </p>
+</div>
+{% endmacro %}
+
+
+{% macro photo_pagelist(current_page, total_page) %}
+<div class="page-nav js-content">
+  {{pagelist_impl(current_page, total_page, "c_tx3",
+  "icon-m icon-pagenav-pre", "icon-m icon-pagenav-next")}}
+</div>
+{% endmacro %}
+
+
+{% macro shuoshuo_pagelist(current_page, total_page, input_id) %}
+<div id="pager" class="mod_pagenav tbor js_error_display">
+  {{pagelist(current_page, total_page, "c_tx", input_id)}}
+</div>
+{% endmacro %}
+
+
+{% macro msg_board_pagelist(current_page, total_page, input_id) %}
+{{pagelist(current_page, total_page, "c_tx", input_id)}}
+{% endmacro %}
+
+
+{% macro blog_pagelist(current_page, total_page, input_id) %}
+{{pagelist(current_page, total_page, "c_tx", input_id)}}
+{% endmacro %}
+
+
+{% macro album_comment_pagelist(current_page, total_page) %}
+<div class="bg2 mod_comment_page" style="background-color:#ffffff;">
+  <p>
+    {{pagelist_impl(current_page, total_page, "c_tx")}}
+    <span class="c_tx3 to">转到：
+      <input class="textinput" id="dialog_layer_go">页：
+    </span>
+    <input type="submit" class="bt_tx2" value="确定" 
+    onclick="showDialogLayer(document.getElementById('dialog_layer_go'), {{total_page}});">
+  </p>
+</div>
+{% endmacro %}

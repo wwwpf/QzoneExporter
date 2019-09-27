@@ -1,0 +1,25 @@
+<div class="md">
+{% with %}
+{% set media_list = msg | get_shuoshuo_media_list(uin, download_if_not_exist) %}
+{% set l = media_list | length %}
+{% if l > 0 %}
+  {% set s = media_list | length | shuoshuo_media_size %}
+  {% set w = s["width"] %}
+  {% set h = s["height"] %}
+  <div class="img-attachments img_thumb {{media_list|length|shuoshuo_media_class}} smallPic pic">
+    <div class="img-attachments-inner clearfix">
+      {% for media in media_list %}
+      <a href="{{media.url}}" target="_blank">
+        {% if media.type == "video" %}
+        <video src="{{media.url}}" controls="controls" loop="loop"
+          onload="adjustImg(this, {{w}}, {{h}}, 1, {{(l==1)|int}})"></video>
+        {% else %}
+        <img src="{{media.url}}" onload="adjustImg(this, {{w}}, {{h}}, 1, {{(l==1)|int}})">
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+{% endwith %}
+</div>

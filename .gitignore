@@ -104,3 +104,6 @@ venv.bak/
 .mypy_cache/
 
 .vscode/
+log.txt
+html/static/avatars/*.*
+[0-9][0-9]*/

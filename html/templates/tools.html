@@ -1,0 +1,74 @@
+{% macro avatar(uin, size, height) %}
+<a href="/{{uin}}" class="goProfile" target="_blank">
+  <span class="skin_portrait_round"></span>
+  <img src="{{uin|get_uin_avatar_url(size)}}" height="{{height}}">
+</a>
+{% endmacro %}
+
+
+{% macro generate_media_list_(media_list, w=0, h=0) -%}
+{% for media in media_list %}
+<a href="{{media.url}}" target="_blank">
+  {% if media.type == "video" %}
+    <video src="{{media.url}}" controls="controls" loop="loop" 
+    style="width:auto; height:auto; max-width: 100%; max-height: 100%;"></video>
+  {% else %}
+    {% if w > 0 and h > 0 %}
+      <img src="{{media.url}}" onload="adjustImg(this, {{w}}, {{h}})">
+    {% else %}
+    <img src="{{media.url}}" style="width:auto; height:auto; max-width: 100%; max-height: 100%;">
+    {% endif %}
+  {% endif %}
+</a>
+{% endfor %}
+{%- endmacro %}
+
+
+{% macro generate_media_list(data, uin, download_if_not_exist, w=0, h=0) -%}
+{% set media_list = data | get_shuoshuo_media_list(uin, download_if_not_exist) %}
+  {{generate_media_list_(media_list, w, h)}}
+{%- endmacro %}
+
+
+{% macro generate_photo_comment_media_list(data, uin, album_info, download_if_not_exist, size) -%}
+{% set media_list = data | get_photo_comment_media_list(uin, album_info["name"], album_info["id"], download_if_not_exist) %}
+  {{generate_media_list_(media_list, size, size)}}
+{%- endmacro %}
+
+{% macro nickname(uin, name) -%}
+<a class="nickname" href="/{{uin}}" target="_blank">{{name|content_beautify|safe}}</a>
+{%- endmacro %}
+
+{% macro comment_op(t) -%}
+<div class="comments_op">
+  <span class="c_tx3 ui_mr10">
+    {{t|format_datetime}}
+  </span>
+</div>
+{%- endmacro %}
+
+{% macro comments_content_(reply_id, reply_name, reply_content, post_time) -%}
+{% set info = reply_content|extract_info %}
+<div class="comments_content">
+  {{nickname(reply_id, reply_name)}}
+  {% if info["uin"] | length > 0 %}
+    <span><span> 回复 </span>{{nickname(info["uin"], info["nick"])}}</span>
+  {% endif %}: <span>{{info["content"]|content_beautify|safe}}</span>
+  {{comment_op(post_time)}}
+</div>
+{%- endmacro %}
+
+
+{% macro comments_content(reply) -%}
+  {{comments_content_(reply['poster']['id'], reply["poster"]["name"], reply["content"], reply["postTime"])}}
+{%- endmacro %}
+
+
+{% macro shuoshuo_comment_content(reply) -%}
+  {{comments_content_(reply["uin"], reply["name"], reply["content"], reply["create_time"])}}
+{%- endmacro %}
+
+
+{% macro msgboard_comments_content(reply) -%}
+  {{comments_content_(reply["uin"], reply["nick"], reply["content"], reply["time"])}}
+{%- endmacro %}

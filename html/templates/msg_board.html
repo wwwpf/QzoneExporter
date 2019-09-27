@@ -1,0 +1,129 @@
+{% extends "index_base.html" %}
+{% from "pagelist.html" import msg_board_pagelist %}
+{% from "tools.html" import avatar %}
+{% from "tools.html" import msgboard_comments_content %}
+{% block stylesheet %}
+<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/blog_msgboard.css')}}" />
+<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/say.css')}}" />
+{% endblock %}
+{% block content %}
+<div class="bg_mode" id="normal_page_container">
+  <div class="box_ml bor">
+    <div class="mode_gb">
+      <div class="bor mod-tab">
+        <div class="mod-tab-list">
+          <ul>
+            <li class="nav_home">
+              <a href="#" class="c-tx2"><span class="item-wrap bor-tx">留言板</span></a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="mode_gb_cont" id="main">
+        <div class="guestbook" id="app_mod">
+          <div class="gb_own">
+            <div class="mod_clear bor3 mod_tit2"><h4>主人寄语</h4></div>
+            <div class="cont_author" id="authorInfo">
+              <table width="100%">
+                <tbody>
+                  <tr>
+                    <td>
+                      <div id="author_info_cont">{{author_info["msg"]|content_beautify|safe}}</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="gb_comment">
+            <div class="mod_comments"><!--使用说说评论的样式-->
+              <div class="comments_list"><!--使用说说评论的样式-->
+                <div id="commentList">
+                  <div class="bor3 gb_comment_tit">
+                    <div class="tit">
+                      <h4 id="titleCnt">留言 (<span id="cnt">{{main_data["msg_board"]}}</span>)</h4>
+                    </div>
+                    <div class="op" id="pager_top">
+                        {{msg_board_pagelist(current_page, total_page, "page_go_top")}}
+                    </div>
+                  </div>
+                  <ul id="ulCommentList">
+                  {% for comment in commentlist %}
+                    <li class="bor3">
+                        <div class="wrap">
+                          <div class="info_guest">
+                            <p class="avatar">{{avatar(comment["uin"], 50, 50)}}</p>
+                          </div>
+                          <div class="main">
+                            <div class="main_bd">
+                              <div class="inner">
+                                <p class="tit">
+                                  <span class="userinfo">
+                                    <span class="username">
+                                      <a href="/{{comment['uin']}}" title="{{comment['uin']}}"
+                                        class="c_tx q_namecard" >{{comment['nickname']|content_beautify|safe}}</a>
+                                    </span>
+                                  </span>
+                                  <span class="c_tx3 floor">第{{loop.index0|calc_floor(current_page, sum_page, main_data["msg_board"])}}楼</span>
+                                </p>
+                                <div class="cont">
+                                  <table style="width:100%;word-break: break-all;">
+                                    <tbody>
+                                      <tr>
+                                        <td>{{comment["htmlContent"]|content_beautify|safe}}</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                  <p class="reply_wrap"><span class="c_tx3 mode_post">{{comment["pubtime"]}}</span></p>
+                                </div>
+                                <div class="comment_wrap">
+                                  <div class="bor3 none" style="border-width:1px 0 0">
+                                    <b class="ui_trigbox ui_trigbox_t">
+                                      <b class="ui_trig bor3"></b>
+                                      <b class="ui_trig ui_trig_up bor_bg"></b>
+                                    </b>
+                                  </div>
+                                  <div class="mod_comment">
+                                    <div class="mod_comments_sub">
+                                      <ol>
+                                      {% for reply in comment["replyList"] %}
+                                        <li class="comments_item bor3">
+                                          <div class="comments_item_bd">
+                                            <div class="ui_avatar">
+                                              {{avatar(reply["uin"], 50, 35)}}
+                                            </div>
+                                            {{msgboard_comments_content(reply)}}
+                                          </div>
+                                        </li>
+                                      {% endfor %}
+                                      </ol>
+                                    </div>
+                                  </div>
+                                </div>
+                                <!-- 未拉取签名数据 -->
+                                <!-- {% if comment["signature"] and comment["signature"]|length > 0 %}
+                                <div class="bor3 c_tx3 signature">
+                                </div>
+                                {% endif %} -->
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                    </li>
+                  {% endfor %}
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="bor other">
+              <div class="pagenav" id="pager_bottom">
+                {{msg_board_pagelist(current_page, total_page, "page_go_bottom")}}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

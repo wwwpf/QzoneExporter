@@ -1,0 +1,188 @@
+{% extends "index_base.html" %}
+{% from "pagelist.html" import photo_pagelist %}
+{% block stylesheet %}
+<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/app-35.css')}}" />
+<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/photo-scan-layer.css')}}" />
+<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/photo.css')}}" />
+<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/qz-dialog.css')}}" />
+<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/photo-dialog.css')}}" />
+{% endblock %}
+{% block scripts %}
+<script type="text/javascript" src="{{url_for('static', filename='html/static/layer.js')}}"></script>
+<script type="text/javascript">
+  function onMoreMouseOver() {
+    document.getElementById("more_info").style = "display:block;";
+    var x = document.getElementById("more_info_a");
+    x.className = x.className + " see-more-on";
+  }
+
+  function onMoreMouseOut() {
+    document.getElementById("more_info").style = "display:none;";
+    var x = document.getElementById("more_info_a");
+    x.className = x.className.replace(" see-more-on", "");
+  }
+</script>
+{% endblock %}
+{% block content %}
+<div class="bg0 mod-wrap" id="js-container" style="padding: 0px 53px;">
+  <div class="mod-wrap-inner">
+    <div class="mod-wrap-hd" id="js-nav-container">
+      <div class="bor mod-tab">
+        <div class="mod-tab-list">
+          <ul>
+            <li data-mod="albumlist" class="js-nav-tab">
+              <a href="/{{uin}}/photo/" class="c-tx2 js-select">
+                <span class="item-wrap bor-tx">相册<span class="item-num js-nav-tab-num"></span></span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="mod-wrap-bd" id="js-module-container" style="min-height:600px;">
+      <style>
+        .j-pl-transition {
+          -webkit-transition: all 300ms ease-in-out;
+          -moz-transition: all 300ms ease-in-out;
+          -o-transition: all 300ms ease-in-out;
+          transition: all 300ms ease-in-out;
+        }
+      </style>
+      <div class="page-photo-list photo-list-host j-pl-contianer-inner">
+        <div class="photo-list-head j-pl-header-normal">
+          <div class="album-info">
+            <div class="j-pl-albuminfo">
+              <div class="cover j-pl-albuminfo-cover">
+                <a href="javascript:void(0)" class="j-pl-set-albumcover"
+                  style="display:block;width:70px;height:70px;overflow:hidden;">
+                  <img
+                    src="{{album_info['pre']|get_photo_url(uin, album_info['name'], album_info['id'], download_if_not_exist)}}"
+                    style="width: 70px; height: 70px; margin: 0px;">
+                </a>
+              </div>
+              <div class="j-pl-albuminfo-others j-pl-popup-wrap">
+                <div class="profile profile-edit1">
+                  <div class="tit-view j-pl-quickedit-wrap">
+                    <a href="javascript:void(0)"
+                      class="tit c-tx2 j-pl-quickedit-normal j-pl-quickedit-normal-content j-pl-albuminfo-title"
+                      title="{{album_info['name']|safe}}">{{album_info["name"]|safe}}</a>
+                  </div>
+                  <span class="info c-tx3">
+                    <span class="count c-tx2 j-pl-albuminfo-total">{{album_info["total"]}}张</span>
+                    <i class="sp">/</i>
+                    <span class="role">{{priv_map[album_info["priv"]]["title"]}}</span>
+                    {% if album_info["desc"]|length > 0 %}
+                    <i class="sp">/</i>
+                    <span class="desc" title="{{album_info['desc']}}">{{album_info["desc"]|safe}}</span>
+                    {% endif %}
+                  </span>
+                  <a href="javascript:void(0)" class="see-more j-pl-popup-btn j-pl-albumdetail-toggle"
+                    onmouseover="onMoreMouseOver()" onmouseout="onMoreMouseOut()" title="相册信息" id="more_info_a">
+                    <i class="icon-m icon-expansion-m"></i>
+                  </a>
+                </div>
+                <div class="profile-more j-pl-popup-panel j-pl-albumdetail" style="display:none" id="more_info">
+                  <div class="field">
+                    <label>描述</label>{{album_info["desc"]|safe}}
+                  </div>
+                  <!-- field -->
+                  <div class="field">
+                    <label>权限</label>{{priv_map[album_info["priv"]]["title"]}}
+                  </div>
+                  <!-- field -->
+                  <div class="field">
+                    <label>时间</label>{{album_info["createtime"]|format_datetime}}创建 -
+                    {{album_info["modifytime"]|format_datetime}}更新
+                  </div>
+                  <!-- field -->
+                </div>
+              </div>
+            </div>
+            <div class="status j-pl-interact-info">
+              <div class="box comment j-pl-comment-area" style="display:block">
+                <div class="inner">
+                  <a href="javascript:void(0)" class="j-pl-comment-btn" data-hottag="interact.comment.show" 
+                  onclick="showDialogLayer(1,{{photo_comments_page}});"
+                    style="display:block;">
+                    <span class="c_tx2">评论</span>
+                    <em class="c_tx3 j-pl-comment-num" title="{{album_info['comment']}}">{{album_info["comment"]}}</em>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="photo-list-body j-pl-photolist" style="min-height: 0px;">
+          {% with %}
+          {% set l = floatview_photos | length %}
+          {% set row = (l / 6) | round(0, 'ceil') %}
+          {% set h = row * 200 - 35 %}
+          <div class="mod-photo-list" style="height: {{h}}px;">
+            <ul class="list j-pl-photolist-ul">
+              {% for photo in floatview_photos %}
+              {% set media_info = photo|extract_media_info_from_photo("picKey") %}
+              <li class="j-pl-photoitem">
+                <div class="bg3 mod-photo-item  j-pl-photoitem-pos j-pl-transition"
+                  {{loop.index0|photo_position_style|safe}}>
+                  <div class="item-bd j-pl-photoitem-bd" style="width:177px;height:133px;"
+                    onclick="showPhotoLayer({{loop.index0}},{{l}});" style="width:177px;height:133px;"
+                    onmouseover="mouseOver('photo{{loop.index0}}')" onmouseout="mouseOut('photo{{loop.index0}}')">
+                    <a href="javascript:void(0)" class="item-cover j-pl-photoitem-imgctn">
+                      {% if media_info.type == "video" %}
+                      <i class="play-the-video j-pl-photoitem-play"></i>
+                      <video class="j-pl-photoitem-img"
+                      style="margin: 0 auto; opacity: 1; width:auto; height:auto; max-height:133px;max-width:177px;"
+                      src="{{media_info.url|get_photo_url(uin, album_info['name'], album_info['id'], download_if_not_exist)}}">
+                      {% else %}
+                      <img class="j-pl-photoitem-img" style="opacity: 1;"
+                        src="{{media_info.url|get_photo_url(uin, album_info['name'], album_info['id'], download_if_not_exist)}}"
+                        onload="adjustImg(this, 177, 133)">
+                      {% endif %}
+                    </a>
+                    <div style="visibility:hidden;position:absolute;top:0px;left:0px;border:1px;background-color:#f00;"
+                      data-cp="0">中心点
+                    </div>
+                    <div class="item-ex j-pl-photoitem-info" style="display:none" id="photo{{loop.index0}}">
+                      {% if photo["desc"]|length > 0 %}
+                        <div class="item-desc j-pl-photoitem-desc" title="{{photo['desc']|safe}}">
+                          {{photo["desc"]|safe}}
+                        </div>
+                      {% endif %}
+                      <div class="item-op">
+                        <a href="javascript:void(0)" class="item-comment js-quick-comment j-pl-photoitem-cmtbtn">
+                          <i class="icon-m icon-comment-m" title="评论"></i>
+                          {% if photo["cmtTotal"] > 0 %}
+                            <span class="comment-num js-comment-count j-pl-photoitem-cmtnum">{{photo["cmtTotal"]}}</span>
+                          {% endif %}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="item-ft">
+                    <div class="item-tit bor2 j-pl-photoitem-title">
+                      <span title="{{photo['name']}}">{{photo["name"]}}</span>
+                    </div>
+                  </div>
+                </div>
+              </li>
+              {% endfor %}
+            </ul>
+            <div class="j-pl-photolist-tip" data-status="end"></div>
+          </div>
+          {% endwith %}
+          <div class="mod-photo-pagenav j-pl-photolist-pager">
+            <div class="mod-photo-pagenav j-pl-photolist-pager">
+              {{photo_pagelist(current_page, total_page)}}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="photo_layer js-viewer-container" id="js-viewer-container"
+  style="z-index: 5500; position: fixed; top: 0px; padding-top: 16px; display:none; height:500px;">
+</div>
+<div id="qz_dialog_layer" style="z-index: 5500; display:none; position: fixed; left:10%; top:10%; bottom:10%; right:10%;"></div>
+{% endblock %}

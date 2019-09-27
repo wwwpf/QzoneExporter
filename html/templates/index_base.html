@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}
+<title>
+  {{qzone_name}} [{{uin}}]
+</title>
+{% endblock %}
+{% block nav %}
+<ul class="top-nav">
+  <li class="nav-list" id="tb_ic_li">
+    <div class="nav-list-inner">
+      <a id="aIcenter" class="nav-hover" href="/{{uin}}" accesskey="1">
+        <i class="ui-icon icon-icenter"></i>
+        <span>个人中心</span>
+      </a>
+    </div>
+  </li>
+  <li class="nav-list" id="tb_index_li">
+    <div class="nav-list-inner">
+      <a id="aMainPage" href="/{{uin}}" class="homepage-link a-link " accesskey="z"
+        onmouseover="mouseOver('tb_menu_panel')" onmouseout="mouseOut('tb_menu_panel')">
+        <i class="ui-icon icon-homepage"></i>
+        <span>我的主页</span>
+        <i class="drop-down-arrow"></i>
+      </a>
+    </div>
+    <div class="nav-drop-down" id="tb_menu_panel" style="display:none;" onmouseover="mouseOver('tb_menu_panel')"
+      onmouseout="mouseOut('tb_menu_panel')">
+      <div class="side-area">
+        <div class="homepage-link">
+          <a class="link-icon" href="/{{uin}}"><i class="icon-homepage"></i></a>
+          <a class="link-text" href="/{{uin}}">主页</a>
+        </div>
+      </div>
+      <div class="main-area">
+        <div class="main-application">
+          <ul class="main-application-list clearfix" id="tb_menu_list">
+            <li class="menu_item_2">
+              <a href="/{{uin}}/blog"><i class="icon-blog"></i></a>
+              <a class="app-name" href="/{{uin}}/blog">日志</a>
+            </li>
+            <li class="menu_item_4">
+              <a href="/{{uin}}/photo"><i class="icon-album"></i></a>
+              <a class="app-name" href="/{{uin}}/photo">相册</a>
+            </li>
+            <li class="menu_item_311">
+              <a href="/{{uin}}/shuoshuo"><i class="icon-say"></i></a>
+              <a class="app-name" href="/{{uin}}/shuoshuo">说说</a>
+            </li>
+            <li class="menu_item_334">
+              <a href="/{{uin}}/msg_board"><i class="icon-message-book"></i></a>
+              <a class="app-name" href="/{{uin}}/msg_board">留言板</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </li>
+  {% for k, v in main_data.items() %}
+  <li class="nav-list">
+    <div class="nav-list-inner">
+      <a class="nav-hover" href="/{{uin}}/{{k}}">
+        <span>{{path_texts[k]}}({{v}})</span>
+      </a>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}
