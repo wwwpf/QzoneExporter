@@ -144,12 +144,24 @@ class PhotoExifRecoverBatch(object):
         with open(album_info_dir, "r", encoding="utf-8") as album_info_f:
             album_info = json.load(album_info_f)
 
+        # form album list
+        album_list = []
+        if "albumListModeSort" in album_info["data"]:
+            for _album in album_info["data"]["albumListModeSort"]:
+                album_list.append(_album)
+        if "albumListModeClass" in album_info["data"]:
+            for _album_list_info in album_info["data"]["albumListModeClass"]:
+                if "albumList" in _album_list_info:
+                    for _album in _album_list_info["albumList"]:
+                        album_list.append(_album)
+
         # No album at all!
-        if album_info["data"]["albumListModeSort"] is None:
+        if len(album_list) <= 0:
             print("【json记录中无相册！】")
             return
 
-        for album in album_info["data"]["albumListModeSort"]:
+        # do for every album
+        for album in album_list:
             album_dir = ""
             files_in_target_dir = os.listdir(target_dir)
             album_id_purged = purge_file_name(album["id"])
