@@ -5,7 +5,7 @@ import random
 import re
 import time
 
-from config import EXTENSIONS, QzoneType
+from config import EXTENSIONS, QzoneKey, QzoneType
 
 escape_chars_map = {' ': '%20', '/': '%2F', '\\': '%5C',
                     ':': '%3A', '*': '%2A', '?': '%3F', '"': '%22',
@@ -137,6 +137,12 @@ def test_album_valid(filename):
     return re.fullmatch(r"(.+)_(.+)", filename)
 
 
+def test_blog_info_valid(filename):
+    '''判断日志信息文件是否合法
+    '''
+    return re.fullmatch(r"blogs_\d+-\d+.json", filename)
+
+
 def test_blog_valid(filename):
     '''判断日志文件名是否合法
     '''
@@ -201,3 +207,27 @@ def get_sum_page(files):
         t += end - begin + 1
         r[i + 1] = t
     return r
+
+
+def filter_blog_script(script_text):
+    key_words = ["var g_oBlogData"]
+    for word in key_words:
+        if word in script_text:
+            return True
+    return False
+
+
+@logging_wrap
+def get_album_list_data(album_list_json_data):
+    ''' 返回的相册列表根据相册的展示设置在不同的位置中
+        普通视图：albumListModeSort，json_data["data"][key]是相册列表
+        分类视图：albumListModeClass，(json_data["data"][key]的元素)["albumList"]是相册列表
+    '''
+    album_list = []
+    if QzoneKey.ALBUM_LIST_MODE_SORT_KEY in album_list_json_data:
+        album_list = album_list_json_data[QzoneKey.ALBUM_LIST_MODE_SORT_KEY]
+    elif QzoneKey.ALBUM_LIST_MODE_CLASS_KEY in album_list_json_data:
+        for t in album_list_json_data[QzoneKey.ALBUM_LIST_MODE_CLASS_KEY]:
+            if QzoneKey.ALBUM_LIST_KEY in t:
+                album_list += t[QzoneKey.ALBUM_LIST_KEY] or []
+    return album_list

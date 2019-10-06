@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup, Comment
 
 from config import QzonePath
 from saver import Saver
-from tools import logging_wrap, purge_file_name
+from tools import filter_blog_script, logging_wrap, purge_file_name
 
 
 class BlogCategoryInfo(Saver):
@@ -45,6 +45,16 @@ class BlogCategoryInfo(Saver):
         '''
 
         return self._cate_info
+
+    def export(self):
+        self.save(self._filename)
+
+
+class BlogsInfo(Saver):
+    def __init__(self, json_data, begin, end, directory):
+        Saver.__init__(self, json_data, directory, QzonePath.BLOG)
+
+        self._filename = "blogs_%05d-%05d.json" % (begin, end)
 
     def export(self):
         self.save(self._filename)
@@ -121,6 +131,8 @@ class BlogParser(object):
             delete_labels = ["script", "style"]
             for delete_label in delete_labels:
                 for t in self._bs_obj.find_all(delete_label):
+                    if filter_blog_script(t.text):
+                        continue
                     t.extract()
 
             # 删除注释

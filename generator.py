@@ -8,11 +8,12 @@ from flask import redirect, render_template, url_for
 from blog_parser import BlogInfo
 from config import QzoneFileName, QzonePath, QzoneString
 from exporter import QzoneExporter
-from tools import (get_files, get_sum_page, recover_file_name,
-                   test_album_valid, test_blog_comment_valid, test_blog_valid,
-                   test_floatview_photo_valid, test_msgboard_valid,
-                   test_photo_comment_valid, test_photo_valid,
-                   test_shuoshuo_valid)
+from tools import (filter_blog_script, get_album_list_data, get_files,
+                   get_sum_page, recover_file_name, test_album_valid,
+                   test_blog_comment_valid, test_blog_info_valid,
+                   test_blog_valid, test_floatview_photo_valid,
+                   test_msgboard_valid, test_photo_comment_valid,
+                   test_photo_valid, test_shuoshuo_valid)
 
 NUMBER_PATTERN = re.compile(r"阅读\((\d+?)\).*?评论\((\d+?)\)")
 PRIV_MAP = {
@@ -103,9 +104,11 @@ class QzoneGenerator(object):
             QzonePath.BLOG: {}
         }
 
+        self._new_blog_info = None
         self._blog_info_list = None
         self._current_blog = None
         self._current_blog_content_div = None
+        self._current_blog_data = {}
 
         self._current_album_id = None
         self._current_album_comment_page = None
@@ -184,7 +187,9 @@ class QzoneGenerator(object):
                     bs_obj.find("div", {"id": "blogDetailDiv"})
                 if not self._current_blog_content_div:
                     return redirect(url_for("uin_home", uin=self._main_dir))
+                self._current_blog_data = get_blog_data(bs_obj)
         return render_template(QzoneFileName.SINGLE_BLOG_HTML,
+                               blog_data=self._current_blog_data,
                                blog_info=self._current_blog,
                                blog_content_div=self._current_blog_content_div,
                                current_page=page,
@@ -206,6 +211,7 @@ class QzoneGenerator(object):
             # 全部日志
             return render_template(QzoneFileName.BLOG_PREVIEW_HTML,
                                    blog_list=self._blog_info_list,
+                                   blog_info_map=self._new_blog_info,
                                    categories=self._files[QzonePath.BLOG],
                                    **self._template_args)
         elif not blog_id:
@@ -214,6 +220,7 @@ class QzoneGenerator(object):
             return render_template(QzoneFileName.BLOG_PREVIEW_HTML,
                                    blog_list=sort_blog_list_by_time(self._files[QzonePath.BLOG][c].values(
                                    )),
+                                   blog_info_map=self._new_blog_info,
                                    categories=self._files[QzonePath.BLOG],
                                    **self._template_args)
         return self.generate_single_blog(encoded_category, blog_id, page)
@@ -441,14 +448,7 @@ class QzoneGenerator(object):
         with open(album_info_file, "r", encoding="utf-8") as fin:
             json_data = json.load(fin)
 
-        album_list_mode_key = QzoneExporter.ALBUM_LIST_MODE_SORT_KEY
-        if album_list_mode_key not in json_data["data"]:
-            album_list_mode_key = QzoneExporter.ALBUM_LIST_MODE_CLASS_KEY
-            if album_list_mode_key not in json_data["data"]:
-                return
-        if not json_data["data"][album_list_mode_key]:
-            return
-        temp = json_data["data"][album_list_mode_key]
+        temp = get_album_list_data(json_data["data"])
         for album in temp:
             self._album_info_dict[album["id"]] = album
 
@@ -483,6 +483,7 @@ class QzoneGenerator(object):
         '''初始化日志数据
         '''
 
+        self._new_blog_info = {}
         self._blog_info_list = []
         self._comment_files[QzonePath.BLOG] = {}
         self._files[QzonePath.BLOG] = {}
@@ -492,7 +493,15 @@ class QzoneGenerator(object):
             encoded_cate_dir = os.path.join(
                 self._data_dir[QzonePath.BLOG], encoded_cate)
             if not os.path.isdir(encoded_cate_dir):
+                blogs_info_filename = encoded_cate_dir
+                if not test_blog_info_valid(encoded_cate):
+                    continue
+                with open(blogs_info_filename, "r", encoding="utf-8") as fin:
+                    blogs_data = json.load(fin)
+                for blog in blogs_data.get("data", {}).get("list", []):
+                    self._new_blog_info[blog["blogId"]] = blog
                 continue
+
             files = os.listdir(encoded_cate_dir)
             for encoded_file in files:
                 s = test_blog_valid(encoded_file)
@@ -515,7 +524,6 @@ class QzoneGenerator(object):
                 self._comment_files[QzonePath.BLOG].setdefault(
                     html_f, []).append(encoded_file)
 
-
             for k, v in self._comment_files[QzonePath.BLOG].items():
                 self._comment_files[QzonePath.BLOG][k] = sorted(v)
                 self._sum_page[QzonePath.BLOG][k] = \
@@ -532,6 +540,23 @@ class QzoneGenerator(object):
         album_dir = "%s_%s" % (encoded_album, album_id)
         t[encoded_album] = (album_id, album_dir)
         return t[encoded_album]
+
+
+def get_blog_data(bs_obj):
+    r = {}
+    scripts = bs_obj.find_all("script")
+    blog_data_text = ""
+    for script in scripts:
+        if filter_blog_script(script.text):
+            blog_data_text = script.text
+            break
+    else:
+        return r
+    m = re.search(r"({.+})", blog_data_text, re.DOTALL)
+    if not m:
+        return r
+    r = json.loads(m[1]).get("data", {})
+    return r
 
 
 def get_blog_info(directory, encoded_category, encoded_filename, matched_result):

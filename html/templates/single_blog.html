@@ -5,6 +5,7 @@
 <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='html/static/blog_app.css')}}" />
 {% endblock %}
 {% block content %}
+{% set is_reprinted = blog_data | is_blog_reprinted %}
 <div class="bg_mode bg">
   <div class="box_ml bor">
     <div class="mode_gb">
@@ -26,6 +27,9 @@
                 <strong>
                   <span>
                     <span class="blog_tit_detail" tabindex="1">
+                      {% if is_reprinted %}
+                      <span>[转]</span>
+                      {% endif %}
                       {{blog_info.title|safe}}
                     </span>
                   </span>
@@ -33,6 +37,9 @@
                 <span class="tit_other_info" style="display:inline;">
                   <span id="pubTime" class="c_tx3">{{blog_info.blog_id|format_datetime}}</span>
                   <span id="readNum" class="c_tx3">阅读({{blog_info.read_num}})</span>
+                  {% if is_reprinted %}
+                  <span id="quoteInfo" class="c_tx3">转载自<a class="c_tx3 q_namecard" target="_blank" href="/{{blog_data['orguin']}}">{{blog_data["orgnick"]|content_beautify|safe}}</a></span>
+                  {% endif %}
                 </span>
               </div>
             </div>

@@ -2,7 +2,7 @@ import logging
 
 import requests
 
-from config import RETRY_TIMES, HEADERS
+from config import HEADERS, RETRY_TIMES
 from tools import logging_wrap
 
 
