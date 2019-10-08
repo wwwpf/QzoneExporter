@@ -422,3 +422,37 @@ def matched_comments(photo_id, comments):
         if photo_id == comment["targetImage"]["lloc"]:
             c.append(comment)
     return c
+
+
+def get_effect_bit(e, t):
+    if t < 0 or t > 63:
+        return None
+    effect = e.get("effect1", e.get("effect", 0)) if t < 32 \
+        else e.get("effect2", 0)
+    return effect & (1 << t)
+
+
+def get_blog_label(e):
+    t = [["8", "审核不通过"], ["22", "审核中"], ["4", "顶"], ["21", "荐"],
+         ["3", "转"], ["28", "转"], ["35", "转"], ["36", "转"]]
+    r = ""
+    for i in range(len(t)):
+        n = int(t[i][0])
+        if n == 22:
+            continue
+        if get_effect_bit(e, n):
+            r += '<span class="' \
+                + ("c_tx3" if n == 3 or n == 28 or n == 35 or n == 36 else "c_tx4") \
+                + '" rel="blog-detail-link" blogid="' + \
+                str(e.get("blogId", "")) + '"' + ">[" + t[i][1] + "]</span>"
+            if n == 8:
+                break
+    return r
+
+
+def is_blog_reprinted(e):
+    l = [3, 28, 35, 36]
+    for n in l:
+        if get_effect_bit(e, n):
+            return True
+    return False

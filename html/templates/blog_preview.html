@@ -30,6 +30,9 @@
                         <li rel="list-row">
                           <div class="list_tit" rel="list-row" style="width:68%">
                             <span class="article">
+                                {% if blog_info.blog_id in blog_info_map %}
+                                <span class="article_status">{{blog_info_map[blog_info.blog_id]|get_blog_label|safe}}</span>
+                                {% endif %}
                               <a blogid="{{blog_info.blog_id}}" class="c_tx2"
                                 href="/{{uin}}/blog/{{blog_info.category|purge_file|purge_file}}/{{blog_info.blog_id}}"
                                 title="{{blog_info.title|safe}} -- 发表于{{blog_info.blog_id|format_datetime}}">

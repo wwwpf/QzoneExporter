@@ -57,6 +57,10 @@ class QzoneKey(object):
     OPTION_DATA = "QzoneExporter"
     SHUOSHUO_FLOATVIEW = "shuoshuo_floatview"
 
+    ALBUM_LIST_MODE_SORT_KEY = "albumListModeSort"
+    ALBUM_LIST_MODE_CLASS_KEY = "albumListModeClass"
+    ALBUM_LIST_KEY = "albumList"
+
 
 class QzoneType(object):
     VIDEO = "video"

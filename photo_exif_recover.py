@@ -1,5 +1,10 @@
+import json
+import os
+import re
+import time
+
 import piexif
-import os, json, re, time
+
 from tools import purge_file_name
 
 

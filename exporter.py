@@ -5,17 +5,16 @@ import math
 import os
 from threading import Lock
 
-
 from account_info import AccountInfo
-from blog_parser import BlogComment, BlogInfo, BlogParser
-from config import RETRY_TIMES, QzoneFileName, QzonePath
+from blog_parser import BlogComment, BlogInfo, BlogParser, BlogsInfo
+from config import RETRY_TIMES, QzoneFileName, QzoneKey, QzonePath
 from login import calc_g_tk
 from msgborad_parser import MsgBoardParser
 from photo_parser import (AlbumInfo, AlbumListInfo, PhotoComment,
                           PhotoCommentDownloader, PhotoDownloader, PhotoParser)
 from shuoshuo_parser import ShuoShuoMediaDownloader, ShuoShuoParser
-from tools import (get_json_data_from_response, logging_wrap, random_sleep,
-                   test_uin_valid)
+from tools import (get_album_list_data, get_json_data_from_response,
+                   logging_wrap, random_sleep, test_uin_valid)
 
 
 class QzoneExporter(object):
@@ -28,9 +27,6 @@ class QzoneExporter(object):
     DATA_COUNT_FILE = "like_information.json"
     LIKE_DETAILED_KEY = "like_detailed_data"
     LIKE_COUNT_KEY = "like_count_data"
-    ALBUM_LIST_MODE_SORT_KEY = "albumListModeSort"
-    ALBUM_LIST_MODE_CLASS_KEY = "albumListModeClass"
-    ALBUM_LIST_KEY = "albumList"
 
     @staticmethod
     def _init_logging():
@@ -185,6 +181,11 @@ class QzoneExporter(object):
             blogs_payload["num"] = "%d" % current_num
             r = self._account_info.get_url(blogs_url, params=blogs_payload)
             json_data = get_json_data_from_response(r.text)
+
+            blogs_info = BlogsInfo(
+                json_data, pos, pos + current_num, self._directory)
+            blogs_info.export()
+
             for blog in json_data["data"]["list"]:
                 title = blog["title"]
                 print("process blog:", title)
@@ -394,15 +395,15 @@ class QzoneExporter(object):
     @staticmethod
     def _get_album_list_data_len(album_list_data):
         album_list_len = 0
-        if QzoneExporter.ALBUM_LIST_MODE_SORT_KEY in album_list_data:
+        if QzoneKey.ALBUM_LIST_MODE_SORT_KEY in album_list_data:
             # 普通视图
-            return len(album_list_data[QzoneExporter.ALBUM_LIST_MODE_SORT_KEY] or [])
-        elif QzoneExporter.ALBUM_LIST_MODE_CLASS_KEY in album_list_data:
+            return len(album_list_data[QzoneKey.ALBUM_LIST_MODE_SORT_KEY] or [])
+        elif QzoneKey.ALBUM_LIST_MODE_CLASS_KEY in album_list_data:
             # 分类视图
-            for temp_album in album_list_data[QzoneExporter.ALBUM_LIST_MODE_CLASS_KEY]:
-                if QzoneExporter.ALBUM_LIST_KEY in temp_album:
+            for temp_album in album_list_data[QzoneKey.ALBUM_LIST_MODE_CLASS_KEY]:
+                if QzoneKey.ALBUM_LIST_KEY in temp_album:
                     album_list_len += len(
-                        temp_album[QzoneExporter.ALBUM_LIST_KEY] or [])
+                        temp_album[QzoneKey.ALBUM_LIST_KEY] or [])
         return album_list_len
 
     @logging_wrap
@@ -441,12 +442,9 @@ class QzoneExporter(object):
         if result_code != 0:
             return
 
-        # 返回的相册列表根据相册的展示设置在不同的位置中
-        # 普通视图：albumListModeSort，json_data["data"][key]是相册列表
-        # 分类视图：albumListModeClass，(json_data["data"][key]的元素)["albumList"]是相册列表
-        album_list_mode_key = QzoneExporter.ALBUM_LIST_MODE_SORT_KEY
+        album_list_mode_key = QzoneKey.ALBUM_LIST_MODE_SORT_KEY
         if album_list_mode_key not in json_data["data"]:
-            album_list_mode_key = QzoneExporter.ALBUM_LIST_MODE_CLASS_KEY
+            album_list_mode_key = QzoneKey.ALBUM_LIST_MODE_CLASS_KEY
             if album_list_mode_key not in json_data["data"]:
                 logging.warning("album list data not found in %s"
                                 % json_data["data"])
@@ -494,14 +492,7 @@ class QzoneExporter(object):
         if not album_list_info.json_data["data"][album_list_mode_key]:
             return
 
-        album_list_data = []
-        if album_list_mode_key == QzoneExporter.ALBUM_LIST_MODE_SORT_KEY:
-            album_list_data = album_list_info.json_data["data"][album_list_mode_key]
-        else:
-            for temp_album in album_list_info.json_data["data"][album_list_mode_key]:
-                if QzoneExporter.ALBUM_LIST_KEY in temp_album:
-                    album_list_data += temp_album[QzoneExporter.ALBUM_LIST_KEY]
-
+        album_list_data = get_album_list_data(album_list_info.json_data["data"])
         for album_data in album_list_data:
             album_info = AlbumInfo(album_data)
             print(str(album_info))
@@ -901,17 +892,11 @@ def main():
     parser.add_argument("--photo", help="导出相册数据", action="store_true")
     parser.add_argument("--shuoshuo", help="导出说说数据", action="store_true")
     parser.add_argument(
-        "--like", help="[deprecated]导出点赞数据，需要设置--photo或--shuoshuo", action="store_true")
-    parser.add_argument(
         "--download", help="下载图片或视频至本地，需要先导出说说或相册的json数据", action="store_true")
 
     parser.add_argument("--all", help="导出所有数据", action="store_true")
 
     args = parser.parse_args()
-
-    if args.like and not (args.shuoshuo or args.photo):
-        print("选项错误")
-        return
 
     target_uin = ""
     self_uin = ""
