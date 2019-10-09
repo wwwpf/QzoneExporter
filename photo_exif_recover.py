@@ -1,11 +1,6 @@
-import json
-import os
-import re
-import time
-
 import piexif
-
-from tools import purge_file_name
+import os, json, re, time
+from tools import purge_file_name, get_album_list_data
 
 
 class PhotoExifRecover(object):
@@ -145,16 +140,19 @@ class PhotoExifRecoverBatch(object):
         if not os.path.exists(target_dir):
             print("路径不存在，请确认照片已下载，并在本文件尾部添加目标QQ号")
 
+        # form album list
         album_info_dir = os.path.join(target_dir, "album_info.json")
         with open(album_info_dir, "r", encoding="utf-8") as album_info_f:
             album_info = json.load(album_info_f)
+        album_list = get_album_list_data(album_info['data'])
 
         # No album at all!
-        if album_info["data"]["albumListModeSort"] is None:
+        if len(album_list) <= 0:
             print("【json记录中无相册！】")
             return
 
-        for album in album_info["data"]["albumListModeSort"]:
+        # do for every album
+        for album in album_list:
             album_dir = ""
             files_in_target_dir = os.listdir(target_dir)
             album_id_purged = purge_file_name(album["id"])
@@ -164,7 +162,7 @@ class PhotoExifRecoverBatch(object):
                 if album_id_purged in file_name_in_target_dir:
                     album_dir = os.path.join(target_dir, file_name_in_target_dir)
 
-                    # rename album fold
+                    # rename album folder
                     if should_rename:
                         if not re.search(p_date, file_name_in_target_dir):
                             album_create_timestamp = int(album["createtime"])  # 取相册创建时间
