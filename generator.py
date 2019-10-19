@@ -536,7 +536,7 @@ class QzoneGenerator(object):
         t = _album_save.setdefault(self._main_dir, {})
         if encoded_album in t:
             return t[encoded_album]
-        album_id = self._ablum_name2id[encoded_album]
+        album_id = self._ablum_name2id.get(encoded_album)
         album_dir = "%s_%s" % (encoded_album, album_id)
         t[encoded_album] = (album_id, album_dir)
         return t[encoded_album]
