@@ -230,4 +230,4 @@ def get_album_list_data(album_list_json_data):
         for t in album_list_json_data[QzoneKey.ALBUM_LIST_MODE_CLASS_KEY]:
             if QzoneKey.ALBUM_LIST_KEY in t:
                 album_list += t[QzoneKey.ALBUM_LIST_KEY] or []
-    return album_list
+    return album_list or []
