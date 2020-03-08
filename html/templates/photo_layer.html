@@ -48,16 +48,9 @@
     </div>
     <!--图片右侧详情区S-->
     <div class="figure-side" id="js-sidebar-ctn" style="padding-bottom: 30px; width:300px;">
-      <div class="figure-side-wrap figure-side-scroll">
-        <div class="figure-side-bg js-slideview-scrollbox js-scrollbox" id="js-cmt-wrap">
-
-          <div class="js-scrollbar" style="display: none;">
-            <a class="js-scrolling" style="height: 248px; margin-top: 0px; top: 0px; display: block;"
-              href="javascript:void(0)">
-              <span class="js-scrolling-inner" style=""></span>
-            </a>
-          </div>
-          <div class="figure-side-inner js-scrollcont" id="js-viewer-scrollcont">
+      <div class="figure-side-wrap figure-side-scroll" style="height:100%;">
+        <div class="figure-side-bg js-slideview-scrollbox js-scrollbox" id="js-cmt-wrap" style="height:100%;">
+          <div class="figure-side-inner js-scrollcont" id="js-viewer-scrollcont" style="height:100%;">
             <!--照片所属信息区S-->
             <div class="figure-side-hd">
               <div class="js-userinfo-ctn">
@@ -87,7 +80,7 @@
                 </div>
               </div>
             </div>
-            <div class="figure-interactive">
+            <div class="figure-interactive"  style="overflow: auto;">
               <div class="handle_main js_show_comment" id="js-comment-ctn" style="visibility: visible;">
                 <div class="js_mod_comment_module" id="js-comment-module">
                   <div class="mod_comment mod_comment_auto_open">

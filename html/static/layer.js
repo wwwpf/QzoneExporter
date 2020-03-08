@@ -29,6 +29,7 @@ function setViewerSize() {
     o("#js-thumb-ctn").show().css("opacity", 1);
     o("#js-viewer-container").height(windowHeight);
     o("#js-viewer-container").css("display", "block");
+    o(".figure-interactive:first").height(o("#js-viewer-scrollcont").height() - o(".figure-side-hd:first").height() - 20)
 
     this.imgWrapper.width(this.imgWrapper.width() - o("#js-sidebar-ctn").width() - 20);
 }
