@@ -19,8 +19,10 @@ def convert(s: str, tag):
             return int(numerator), int(denominator)
         else:
             return int(float(s) * 10000), 10000
-    elif tag == piexif.TYPES.Short or tag == piexif.TYPES.Long:
-        return int(s)
+    elif tag == piexif.TYPES.Short:
+        return int(s) % 0xffff
+    elif tag == piexif.TYPES.Long:
+        return int(s) % 0xffffffff
     elif tag == "GPSPos":
         decimal_degrees = float(s)
         degrees = int(decimal_degrees)
@@ -119,7 +121,6 @@ class PhotoExifRecover(object):
                           self.floatview_info, "shootGeo", "pos_y", "GPSPos"):
             # 拍摄地点在北半球是参考北纬的；在南半球如参考北纬则维度是负数
             self.add_exif("GPS", piexif.GPSIFD.GPSLatitudeRef, "N")
-
         if self.is_dirty:
             exif_bytes = piexif.dump(self.exif_dict)
             piexif.insert(exif_bytes, self.file_dir)
