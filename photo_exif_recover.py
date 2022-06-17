@@ -128,8 +128,8 @@ class PhotoExifRecover(object):
 
 class PhotoExifRecoverBatch(object):
     def __init__(self, target_uin):
-        self.target_uin = target_uin
-        self.e = []
+        self._target_uin = target_uin
+        self._e = []
 
     def batch(self, should_rename=True, should_add_exif=True):
         # re constants
@@ -137,7 +137,7 @@ class PhotoExifRecoverBatch(object):
         p_floatview_json = re.compile(r"^floatview_photo_\d{5}-\d{5}.json$")
         p_raw_json = re.compile(r"^photo_\d{5}-\d{5}.json$")
 
-        target_dir = os.path.join(os.getcwd(), self.target_uin, "photo")
+        target_dir = os.path.join(os.getcwd(), self._target_uin, "photo")
         if not os.path.exists(target_dir):
             print("路径不存在，请确认照片已下载，并在本文件尾部添加目标 QQ 号")
 
@@ -247,7 +247,7 @@ class PhotoExifRecoverBatch(object):
                     except Exception as e:
                         error_message = "EXIF 写入失败: " + photo_dir + "\n↘失败原因: " + str(e)
                         print(error_message)
-                        self.e.append(error_message)
+                        self._e.append(error_message)
                         continue  # 对于EXIF写入发生异常的文件跳过重命名步骤
 
                 # rename photo
@@ -261,16 +261,16 @@ class PhotoExifRecoverBatch(object):
                             photo_name_new = photo_create_date + " " + photo_name
                             photo_dir_new = os.path.join(dir_name, photo_name_new)
                             os.rename(photo_dir, photo_dir_new)
-                            photoExifRecover.file_dir = photo_dir_new
 
     def show_error_list(self):
-        e_count = len(self.e)
+        e_count = len(self._e)
         if e_count <= 0:
             print("***EXIF 写入过程未发生异常***")
-        else:
-            print("***EXIF 写入失败数量：", e_count, "***")
-            for e in self.e:
-                print(e)
+            return
+
+        print("***EXIF 写入失败数量：", e_count, "***")
+        for e in self._e:
+            print(e)
 
 
 if __name__ == "__main__":
