@@ -52,7 +52,7 @@ class PhotoExifRecover(object):
         return True
 
     def coyp_DateTimeOriginal_from_uploadtime(self):  # if originalTime is missing
-        if piexif.ExifIFD.DateTimeOrigina in self.exif_dict.setdefault("Exif", {}):
+        if piexif.ExifIFD.DateTimeOriginal in self.exif_dict.setdefault("Exif", {}):
             return
 
         if not self.raw_info.get("uploadtime"):
